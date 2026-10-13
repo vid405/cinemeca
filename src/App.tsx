@@ -127,11 +127,16 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
           used={game.hints}
           remaining={game.hintsRemaining}
           nextHintIn={game.nextHintIn}
-          onChoose={(kind) => {
-            game.revealHint(kind);
+          loading={game.hintLoading}
+          error={game.hintError}
+          onChoose={async (kind) => {
+            // Solo se cierra si la pista se reveló; si falla, el error se ve en la ventana.
+            if (await game.revealHint(kind)) closeHints();
+          }}
+          onClose={() => {
+            game.clearHintError();
             closeHints();
           }}
-          onClose={closeHints}
         />
       )}
     </div>

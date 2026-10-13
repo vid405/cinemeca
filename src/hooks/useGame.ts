@@ -24,6 +24,9 @@ export interface GameState<R extends EvaluatedGuess> {
   hintOptions: HintOption[];
   /** Pistas reveladas, en orden. */
   hints: Hint[];
+  /** Pista que se está calculando (algunas piden datos a TMDB). */
+  hintLoading: HintKind | null;
+  hintError: string | null;
   submitting: boolean;
   error: string | null;
   guessError: string | null;
@@ -36,6 +39,8 @@ const initialState = <R extends EvaluatedGuess>(): GameState<R> => ({
   guesses: [],
   hintOptions: [],
   hints: [],
+  hintLoading: null,
+  hintError: null,
   submitting: false,
   error: null,
   guessError: null,
@@ -141,22 +146,43 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     [mode, commit, finish],
   );
 
+  /** Revela una pista; devuelve true si se pudo (solo entonces cuenta como usada). */
   const revealHint = useCallback(
-    (kind: HintKind) => {
+    async (kind: HintKind): Promise<boolean> => {
       const s = stateRef.current;
-      if (s.status !== 'playing' || !s.secret) return;
+      if (s.status !== 'playing' || !s.secret || s.hintLoading) return false;
       const available = s.hintOptions.filter((o) => o.available).length;
-      if (s.hints.length >= unlockedHints(mode.hintSchedule, s.guesses.length, available)) return;
-      if (s.hints.some((h) => h.kind === kind)) return;
-      const hint = mode.buildHint(
-        kind,
-        s.secret,
-        s.guesses.map((g) => g.movie),
-      );
-      if (hint) commit({ ...s, hints: [...s.hints, hint] });
+      if (s.hints.length >= unlockedHints(mode.hintSchedule, s.guesses.length, available)) return false;
+      if (s.hints.some((h) => h.kind === kind)) return false;
+
+      const id = roundId.current;
+      commit({ ...s, hintLoading: kind, hintError: null });
+      try {
+        const hint = await mode.buildHint(
+          kind,
+          s.secret,
+          s.guesses.map((g) => g.movie),
+          s.hints,
+        );
+        if (id !== roundId.current) return false;
+        const cur = stateRef.current;
+        if (!hint) {
+          commit({ ...cur, hintLoading: null, hintError: 'No encontramos datos para esta pista. Prueba otra; no se ha gastado.' });
+          return false;
+        }
+        commit({ ...cur, hintLoading: null, hints: [...cur.hints, hint] });
+        return true;
+      } catch (err) {
+        if (id === roundId.current) commit({ ...stateRef.current, hintLoading: null, hintError: messageOf(err) });
+        return false;
+      }
     },
     [mode, commit],
   );
+
+  const clearHintError = useCallback(() => {
+    if (stateRef.current.hintError) commit({ ...stateRef.current, hintError: null });
+  }, [commit]);
 
   const giveUp = useCallback(() => {
     const s = stateRef.current;
@@ -190,6 +216,7 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     newGame,
     submitGuess,
     revealHint,
+    clearHintError,
     giveUp,
     clearGuessError,
   };

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { computeXp, getRankInfo, RANKS, XP_RULES } from './xp';
 import { applyRound, createEmptyProfile, getStats, normalizeProfile, RECENT_LIMIT } from './progress';
-import { buildHint, hintOptions, pickCastHint, redactTitle } from './hints';
+import {
+  buildHint,
+  hintOptions,
+  pickCastHint,
+  pickRelatedFilm,
+  redactTitle,
+  sharesTitleWord,
+  type HintDeps,
+  type PersonCredit,
+} from './hints';
 import { attemptsToNextHint, unlockedHints } from './modes';
 import type { MovieData } from './types';
 
@@ -70,18 +79,23 @@ describe('applyRound', () => {
 });
 
 describe('desbloqueo de pistas', () => {
-  const schedule = [3, 6, 8];
-  it('cuenta las pistas desbloqueadas y cuánto falta para la siguiente', () => {
-    expect(unlockedHints(schedule, 2, 3)).toBe(0);
-    expect(attemptsToNextHint(schedule, 2, 3)).toBe(1);
-    expect(unlockedHints(schedule, 6, 3)).toBe(2);
-    expect(attemptsToNextHint(schedule, 6, 3)).toBe(2);
-    expect(attemptsToNextHint(schedule, 8, 3)).toBeNull();
+  const schedule = [4, 8];
+  it('una pista cada 4 intentos', () => {
+    expect(unlockedHints(schedule, 3, 5)).toBe(0);
+    expect(attemptsToNextHint(schedule, 3, 5)).toBe(1);
+    expect(unlockedHints(schedule, 4, 5)).toBe(1);
+    expect(attemptsToNextHint(schedule, 4, 5)).toBe(4);
+    expect(unlockedHints(schedule, 8, 5)).toBe(2);
+  });
+
+  it('máximo 2 por partida aunque haya más opciones', () => {
+    expect(unlockedHints(schedule, 10, 5)).toBe(2);
+    expect(attemptsToNextHint(schedule, 9, 5)).toBeNull();
   });
 
   it('no desbloquea más pistas de las que existen', () => {
     expect(unlockedHints(schedule, 9, 1)).toBe(1);
-    expect(attemptsToNextHint(schedule, 4, 1)).toBeNull();
+    expect(attemptsToNextHint(schedule, 5, 1)).toBeNull();
   });
 });
 
@@ -100,19 +114,64 @@ describe('hints', () => {
     ...overrides,
   });
 
-  it('ofrece las 3 opciones y marca las que no tienen datos', () => {
-    expect(hintOptions(movie()).map((o) => [o.kind, o.available])).toEqual([
+  const credit = (id: number, title: string, voteCount = 5000, isFiller = false): PersonCredit => ({
+    id, title, year: 2000, posterPath: null, voteCount, isFiller,
+  });
+  const noDeps: HintDeps = { personCredits: async () => [] };
+
+  it('ofrece las 5 opciones y marca las que no tienen datos', () => {
+    expect(hintOptions(movie({ directors: [p(50)] })).map((o) => [o.kind, o.available])).toEqual([
       ['tagline', true],
       ['cast', true],
       ['keywords', true],
+      ['director-film', true],
+      ['cast-film', true],
     ]);
-    const empty = hintOptions(movie({ overview: '', cast: [], keywords: [] }));
+    const empty = hintOptions(movie({ overview: '', cast: [], keywords: [], directors: [] }));
     expect(empty.every((o) => !o.available)).toBe(true);
   });
 
-  it('frase: usa la tagline o, si falta, la primera frase de la sinopsis', () => {
-    expect(buildHint('tagline', movie({ tagline: 'Un cuento.' }), [])).toMatchObject({ label: 'Frase promocional', text: '“Un cuento.”' });
-    expect(buildHint('tagline', movie(), [])).toMatchObject({ label: 'Fragmento de la sinopsis', text: '“En 1944, Ofelia descubre un laberinto.”' });
+  it('frase: usa la tagline o, si falta, la primera frase de la sinopsis', async () => {
+    expect(await buildHint('tagline', movie({ tagline: 'Un cuento.' }), [], noDeps)).toMatchObject({ label: 'Frase promocional', text: '“Un cuento.”' });
+    expect(await buildHint('tagline', movie(), [], noDeps)).toMatchObject({ label: 'Fragmento de la sinopsis', text: '“En 1944, Ofelia descubre un laberinto.”' });
+  });
+
+  it('película relacionada: la más votada, sin la secreta, intentadas, secuelas ni documentales', () => {
+    const secret = { id: 1, title: 'El laberinto del fauno', originalTitle: 'El laberinto del fauno' };
+    const credits = [
+      credit(1, 'El laberinto del fauno', 9000),
+      credit(2, 'El regreso del fauno', 8000), // comparte "fauno": regalaría el título
+      credit(3, 'Documental de rodaje', 7000, true),
+      credit(4, 'Ya intentada', 6000),
+      credit(5, 'Hellboy', 5000),
+      credit(6, 'Cronos', 3000),
+      credit(7, 'Desconocida', 20),
+    ];
+    expect(pickRelatedFilm(credits, secret, new Set([4]))?.title).toBe('Hellboy');
+    expect(pickRelatedFilm([credit(7, 'Desconocida', 20)], secret, new Set())).toBeNull();
+    expect(sharesTitleWord('Matrix Reloaded', 'The Matrix')).toBe(true);
+    expect(sharesTitleWord('Hellboy', 'El laberinto del fauno')).toBe(false);
+  });
+
+  it('director y coestrella: buscan en la filmografía de cada persona en orden', async () => {
+    const deps: HintDeps = {
+      personCredits: async (id, role) =>
+        role === 'director' ? [credit(10, 'Hellboy')] : id === 1 ? [] : id === 2 ? [credit(20, 'Volver')] : [],
+    };
+    const secret = movie({ directors: [p(50)] });
+    expect(await buildHint('director-film', secret, [], deps)).toMatchObject({ label: 'Del mismo director', film: { title: 'Hellboy' } });
+    // El actor 1 no tiene otras películas válidas, así que usa al actor 2.
+    expect(await buildHint('cast-film', secret, [], deps)).toMatchObject({ label: 'Comparte actor con', film: { title: 'Volver' } });
+    expect(await buildHint('cast-film', secret, [], noDeps)).toBeNull();
+  });
+
+  it('no repite la película que ya mostró la otra pista', async () => {
+    const deps: HintDeps = { personCredits: async () => [credit(10, 'Rompenieves', 9000), credit(11, 'Memories of Murder', 4000)] };
+    const secret = movie({ directors: [p(50)] });
+    const first = await buildHint('director-film', secret, [], deps);
+    expect(first?.film?.title).toBe('Rompenieves');
+    const second = await buildHint('cast-film', secret, [], deps, [first!]);
+    expect(second?.film?.title).toBe('Memories of Murder');
   });
 
   it('reparto: revela un secundario que el jugador no haya descubierto aún', () => {
@@ -123,8 +182,8 @@ describe('hints', () => {
     expect(pickCastHint(movie(), [all])?.id).toBe(1);
   });
 
-  it('temas: palabras clave con el título oculto', () => {
-    expect(buildHint('keywords', movie(), [])?.tags).toEqual(['fairy tale', 'spanish civil war', '▇▇▇']);
-    expect(buildHint('keywords', movie({ keywords: [] }), [])).toBeNull();
+  it('temas: palabras clave con el título oculto', async () => {
+    expect((await buildHint('keywords', movie(), [], noDeps))?.tags).toEqual(['fairy tale', 'spanish civil war', '▇▇▇']);
+    expect(await buildHint('keywords', movie({ keywords: [] }), [], noDeps)).toBeNull();
   });
 });

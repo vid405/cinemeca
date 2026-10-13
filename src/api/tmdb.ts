@@ -1,3 +1,4 @@
+import type { PersonCredit } from '../game/hints';
 import type { Company, MovieData, MovieSuggestion, Person } from '../game/types';
 import { countryName, languageName } from '../utils/i18n';
 
@@ -186,6 +187,43 @@ export function getMovieDetails(id: number): Promise<MovieData> {
 
 export function getMovieList(path: string, params: Params): Promise<TmdbPaged<TmdbListItem>> {
   return request<TmdbPaged<TmdbListItem>>(path, params);
+}
+
+interface TmdbPersonCredit {
+  id: number;
+  title: string;
+  release_date?: string;
+  poster_path: string | null;
+  vote_count: number;
+  genre_ids?: number[];
+  adult?: boolean;
+  character?: string;
+  job?: string;
+}
+
+const DOCUMENTARY_GENRE = 99;
+const SELF_ROLE = /\b(him|her|them)sel(f|ves)\b|\bs[ií] mism[oa]\b|\bnarrator\b|\(voice\)|\buncredited\b/i;
+
+const creditsCache = new Map<number, Promise<{ cast: TmdbPersonCredit[]; crew: TmdbPersonCredit[] }>>();
+
+/** Filmografía de una persona: como director (crew job=Director) o como actor (cast). */
+export async function getPersonCredits(personId: number, role: 'director' | 'actor'): Promise<PersonCredit[]> {
+  let cached = creditsCache.get(personId);
+  if (!cached) {
+    cached = request<{ cast: TmdbPersonCredit[]; crew: TmdbPersonCredit[] }>(`/person/${personId}/movie_credits`);
+    creditsCache.set(personId, cached);
+    cached.catch(() => creditsCache.delete(personId));
+  }
+  const data = await cached;
+  const list = role === 'director' ? data.crew.filter((c) => c.job === 'Director') : data.cast;
+  return list.map((c) => ({
+    id: c.id,
+    title: c.title,
+    year: yearOf(c.release_date),
+    posterPath: c.poster_path,
+    voteCount: c.vote_count,
+    isFiller: Boolean(c.adult || c.genre_ids?.includes(DOCUMENTARY_GENRE) || (c.character && SELF_ROLE.test(c.character))),
+  }));
 }
 
 const searchCache = new Map<string, MovieSuggestion[]>();

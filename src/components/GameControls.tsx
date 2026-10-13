@@ -1,8 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import type { Hint, HintKind } from '../game/hints';
+import { useEffect, useState } from 'react';
+import type { Hint } from '../game/hints';
 import { XP_RULES } from '../game/xp';
 import { shortName } from '../utils/format';
-import { Avatar, Icon } from './ui';
+import { HINT_ICONS } from './HintModal';
+import { Avatar, Icon, Poster } from './ui';
 
 interface Props {
   attempts: number;
@@ -67,13 +68,22 @@ export function GameControls(p: Props) {
   );
 }
 
-const HINT_ICONS: Record<HintKind, ReactNode> = {
-  tagline: <Icon.message className="h-5 w-5" />,
-  cast: <Icon.user className="h-5 w-5" />,
-  keywords: <Icon.tag className="h-5 w-5" />,
-};
-
 function HintBody({ hint }: { hint: Hint }) {
+  if (hint.film) {
+    const { film } = hint;
+    return (
+      <span className="flex items-center gap-3">
+        <Poster path={film.posterPath} title={film.title} size="w92" className="h-14 w-10 shrink-0 rounded-md" />
+        <span>
+          <span className="block font-semibold text-white">{film.title}</span>
+          <span className="block text-xs text-navy-300">
+            {film.year ?? 's/f'} ·{' '}
+            {hint.kind === 'director-film' ? 'la dirigió la misma persona' : 'comparte a alguien del reparto principal'}
+          </span>
+        </span>
+      </span>
+    );
+  }
   if (hint.person) {
     return (
       <span className="flex items-center gap-3">
@@ -105,7 +115,7 @@ export function HintList({ hints }: { hints: Hint[] }) {
     <ul className="space-y-2">
       {hints.map((h) => (
         <li key={h.kind} className="flex animate-fade-up gap-3 rounded-xl border border-near/25 bg-near/[0.07] px-4 py-3 text-sm sm:text-base">
-          <span className="mt-0.5 shrink-0 text-near">{HINT_ICONS[h.kind]}</span>
+          <span className="mt-0.5 shrink-0 text-near">{HINT_ICONS[h.kind]('h-5 w-5')}</span>
           <span className="min-w-0 flex-1">
             <span className="label mb-1.5 block text-near">{h.label}</span>
             <HintBody hint={h} />

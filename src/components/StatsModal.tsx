@@ -13,7 +13,7 @@ function Stat({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-export function StatsModal({ onClose }: { onClose: () => void }) {
+export function StatsModal({ onClose, onSync }: { onClose: () => void; onSync: () => void }) {
   const profile = useProfile();
   const stats = getStats(profile);
   const info = getRankInfo(profile.xp);
@@ -72,7 +72,14 @@ export function StatsModal({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      <button onClick={reset} className="mt-6 text-xs text-navy-400 underline hover:text-red-300">
+      <button
+        onClick={onSync}
+        className="mt-6 w-full rounded-xl border border-navy-400/70 py-3 text-sm font-bold text-navy-200 transition hover:bg-white/5"
+      >
+        📱 Sincronizar con otro dispositivo
+      </button>
+
+      <button onClick={reset} className="mt-4 block text-xs text-navy-400 underline hover:text-red-300">
         Reiniciar progreso
       </button>
     </Modal>

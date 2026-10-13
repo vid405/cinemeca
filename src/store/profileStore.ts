@@ -1,4 +1,5 @@
 import { applyRound, createEmptyProfile, type Profile, type RoundRecord } from '../game/progress';
+import { mergeProfiles, type MergeResult } from '../game/sync';
 import { getRankInfo } from '../game/xp';
 import { storage } from './storage';
 
@@ -37,6 +38,13 @@ export const profileStore = {
     const after = getRankInfo(next.xp);
     set(next);
     return { profile: next, rankUp: after.index > before ? after.rank.name : null };
+  },
+
+  /** Combina el progreso traído de otro dispositivo con el local. */
+  importProfile(incoming: Profile): MergeResult {
+    const result = mergeProfiles(profile, incoming);
+    set(result.profile);
+    return result;
   },
 
   async reset() {

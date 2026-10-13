@@ -1,0 +1,8 @@
+# Nunca subir el token local: si .env llegara al build de Vercel, VITE_TMDB_TOKEN
+# quedaría incrustado en la página pública. En Vercel se usa TMDB_TOKEN (solo servidor).
+.env
+.env.*
+!.env.example
+node_modules
+dist
+dev-dist

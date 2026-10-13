@@ -7,8 +7,17 @@ const IMAGE_BASE = 'https://image.tmdb.org/t/p';
 const LANGUAGE = 'es-ES';
 
 const token = (import.meta.env.VITE_TMDB_TOKEN ?? '').trim();
+const hasDirectToken = token.length > 0 && token !== 'pega_aqui_tu_token';
 
-export const hasToken = () => token.length > 0 && token !== 'pega_aqui_tu_token';
+/**
+ * En local se llama a TMDB directamente con VITE_TMDB_TOKEN (.env). Publicado (build sin
+ * ese token), se usa el proxy /api/tmdb de Vercel, que guarda el token en el servidor
+ * para que no quede expuesto en la página pública.
+ */
+const USE_PROXY = !hasDirectToken && import.meta.env.PROD;
+const PROXY_PATH = '/api/tmdb';
+
+export const isConfigured = () => hasDirectToken || USE_PROXY;
 
 export type ImageSize = 'w45' | 'w92' | 'w154' | 'w185' | 'w342' | 'w500' | 'w780';
 
@@ -29,16 +38,17 @@ export class TmdbError extends Error {
 type Params = Record<string, string | number | boolean | undefined>;
 
 async function request<T>(path: string, params: Params = {}, signal?: AbortSignal): Promise<T> {
-  if (!hasToken()) throw new TmdbError('Falta configurar VITE_TMDB_TOKEN en el archivo .env.', 0);
+  if (!isConfigured()) throw new TmdbError('Falta configurar VITE_TMDB_TOKEN en el archivo .env.', 0);
 
-  const url = new URL(API_BASE + path);
+  const url = USE_PROXY ? new URL(PROXY_PATH, window.location.origin) : new URL(API_BASE + path);
+  if (USE_PROXY) url.searchParams.set('path', path);
   url.searchParams.set('language', LANGUAGE);
   for (const [k, v] of Object.entries(params)) if (v !== undefined) url.searchParams.set(k, String(v));
 
   let res: Response;
   try {
     res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}`, accept: 'application/json' },
+      headers: USE_PROXY ? { accept: 'application/json' } : { Authorization: `Bearer ${token}`, accept: 'application/json' },
       signal,
     });
   } catch (err) {
@@ -48,7 +58,13 @@ async function request<T>(path: string, params: Params = {}, signal?: AbortSigna
   }
 
   if (!res.ok) {
-    if (res.status === 401) throw new TmdbError('El token de TMDB no es válido. Revisa tu archivo .env.', 401);
+    if (res.status === 401) {
+      throw new TmdbError(
+        USE_PROXY ? 'El token de TMDB del servidor no es válido. Revisa TMDB_TOKEN en Vercel.' : 'El token de TMDB no es válido. Revisa tu archivo .env.',
+        401,
+      );
+    }
+    if (USE_PROXY && res.status === 500) throw new TmdbError('Falta configurar TMDB_TOKEN en Vercel.', 500);
     if (res.status === 404) throw new TmdbError('No se encontró la película en TMDB.', 404);
     if (res.status === 429) throw new TmdbError('Demasiadas peticiones a TMDB. Espera un momento.', 429);
     throw new TmdbError(`TMDB respondió con un error (${res.status}).`, res.status);

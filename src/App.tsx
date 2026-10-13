@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { hasToken } from './api/tmdb';
+import { isConfigured } from './api/tmdb';
 import { Footer } from './components/Footer';
 import { GameControls, HintList } from './components/GameControls';
 import { GuessList } from './components/GuessList';
@@ -13,11 +13,12 @@ import { ResultPanel } from './components/ResultPanel';
 import { SearchBox } from './components/SearchBox';
 import { EmptyGuesses, ErrorState, GameSkeleton, MissingToken } from './components/States';
 import { StatsModal } from './components/StatsModal';
+import { SyncModal } from './components/SyncModal';
 import { Icon } from './components/ui';
 import { useGame } from './hooks/useGame';
 import { cluesMode } from './modes';
 
-type ModalId = 'stats' | 'help' | 'menu' | null;
+type ModalId = 'stats' | 'help' | 'menu' | 'sync' | null;
 type View = 'home' | 'play' | 'library';
 
 export default function App() {
@@ -25,7 +26,7 @@ export default function App() {
   const [view, setView] = useState<View>('play');
   const newGameRef = useRef<() => void>(() => {});
   const close = useCallback(() => setModal(null), []);
-  const configured = hasToken();
+  const configured = isConfigured();
   const play = () => setView('play');
 
   const menu: MenuAction[] = [
@@ -41,6 +42,7 @@ export default function App() {
     },
     { label: 'Filmoteca', icon: <Icon.clapper className="h-5 w-5" />, onClick: () => setView('library') },
     { label: 'Estadísticas', icon: <Icon.chart className="h-5 w-5" />, onClick: () => setModal('stats') },
+    { label: 'Sincronizar', icon: <Icon.users className="h-5 w-5" />, onClick: () => setModal('sync') },
     { label: 'Cómo jugar', icon: <Icon.help className="h-5 w-5" />, onClick: () => setModal('help') },
   ];
 
@@ -68,7 +70,8 @@ export default function App() {
       </main>
       <Footer />
       {modal === 'menu' && <MenuDrawer actions={menu} onClose={close} />}
-      {modal === 'stats' && <StatsModal onClose={close} />}
+      {modal === 'stats' && <StatsModal onClose={close} onSync={() => setModal('sync')} />}
+      {modal === 'sync' && <SyncModal onClose={close} />}
       {modal === 'help' && (
         <HelpModal onClose={close} maxAttempts={cluesMode.maxAttempts} hintSchedule={cluesMode.hintSchedule} />
       )}

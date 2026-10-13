@@ -14,9 +14,7 @@ import { EmptyGuesses, ErrorState, GameSkeleton, MissingToken } from './componen
 import { StatsModal } from './components/StatsModal';
 import { Icon } from './components/ui';
 import { useGame } from './hooks/useGame';
-import { usePrefs } from './hooks/useProfile';
 import { cluesMode } from './modes';
-import { prefsStore } from './store/prefsStore';
 
 type ModalId = 'stats' | 'help' | 'menu' | null;
 type View = 'home' | 'play';
@@ -52,7 +50,7 @@ export default function App() {
         onHelp={() => setModal('help')}
         onProfile={() => setModal('stats')}
       />
-      <main className="mx-auto w-full max-w-4xl flex-1 px-4 pt-3 sm:pt-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-3">
         {!configured ? (
           <MissingToken />
         ) : (
@@ -77,21 +75,11 @@ export default function App() {
 
 function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => void }) {
   const game = useGame(cluesMode);
-  const prefs = usePrefs();
+  // El selector de pistas solo se abre cuando el jugador pulsa "Pista".
   const [hintOpen, setHintOpen] = useState(false);
   const closeHints = useCallback(() => setHintOpen(false), []);
   registerNewGame(game.newGame);
   const guessedIds = useMemo(() => new Set(game.guesses.map((g) => g.movie.id)), [game.guesses]);
-
-  // Abrir el selector automáticamente cuando se desbloquea una pista nueva.
-  const lastUnlocked = useRef({ secretId: 0, unlocked: 0 });
-  const secretId = game.secret?.id ?? 0;
-  useEffect(() => {
-    const prev = lastUnlocked.current;
-    const isNewUnlock = prev.secretId === secretId && game.hintsUnlocked > prev.unlocked;
-    lastUnlocked.current = { secretId, unlocked: game.hintsUnlocked };
-    if (isNewUnlock && game.status === 'playing' && game.hintsRemaining > 0 && prefs.autoOpenHints) setHintOpen(true);
-  }, [secretId, game.hintsUnlocked, game.hintsRemaining, game.status, prefs.autoOpenHints]);
 
   useEffect(() => {
     if (game.status !== 'playing') setHintOpen(false);
@@ -102,11 +90,11 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
   if (!game.secret) return null;
 
   return (
-    <div className="space-y-5 sm:space-y-7">
+    <div className="space-y-4">
       {game.isOver && game.summary ? (
         <ResultPanel key={game.secret.id} movie={game.secret} summary={game.summary} onNext={game.newGame} />
       ) : (
-        <div className="space-y-4 sm:space-y-5">
+        <div className="space-y-3">
           <GameControls
             attempts={game.guesses.length}
             maxAttempts={game.maxAttempts}
@@ -139,16 +127,11 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
           used={game.hints}
           remaining={game.hintsRemaining}
           nextHintIn={game.nextHintIn}
-          showDontAskAgain={prefs.autoOpenHints}
           onChoose={(kind) => {
             game.revealHint(kind);
             closeHints();
           }}
           onClose={closeHints}
-          onDontShowAgain={() => {
-            prefsStore.update({ autoOpenHints: false });
-            closeHints();
-          }}
         />
       )}
     </div>

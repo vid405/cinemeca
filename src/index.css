@@ -21,7 +21,7 @@ body {
 
 @layer components {
   .icon-btn {
-    @apply flex h-11 w-11 items-center justify-center rounded-full border border-navy-600/60 bg-navy-700/80 text-white shadow-lg shadow-black/30 transition hover:bg-navy-600 sm:h-14 sm:w-14;
+    @apply flex h-11 w-11 items-center justify-center rounded-full border border-navy-600/60 bg-navy-700/80 text-white shadow-lg shadow-black/30 transition hover:bg-navy-600 sm:h-12 sm:w-12;
   }
   .label {
     @apply text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-xs;

@@ -14,13 +14,11 @@ interface Props {
   used: Hint[];
   remaining: number;
   nextHintIn: number | null;
-  showDontAskAgain: boolean;
   onChoose: (kind: HintKind) => void;
   onClose: () => void;
-  onDontShowAgain: () => void;
 }
 
-export function HintModal({ options, used, remaining, nextHintIn, showDontAskAgain, onChoose, onClose, onDontShowAgain }: Props) {
+export function HintModal({ options, used, remaining, nextHintIn, onChoose, onClose }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
@@ -94,16 +92,6 @@ export function HintModal({ options, used, remaining, nextHintIn, showDontAskAga
         >
           Seguir adivinando
         </button>
-
-        {showDontAskAgain && (
-          <button
-            onClick={onDontShowAgain}
-            className="mx-auto mt-4 block text-sm text-navy-400 underline underline-offset-4 hover:text-navy-200 sm:text-base"
-            title="No abrir esta ventana automáticamente al desbloquear una pista"
-          >
-            No volver a mostrar
-          </button>
-        )}
       </div>
     </div>
   );

@@ -33,10 +33,10 @@ export function ResultPanel({ movie, summary, onNext }: { movie: MovieData; summ
           path={movie.posterPath}
           title={movie.title}
           size="w342"
-          className="aspect-[2/3] w-28 shrink-0 rounded-lg border border-navy-500/50 sm:w-48"
+          className="aspect-[2/3] w-28 shrink-0 rounded-lg border border-navy-500/50 sm:w-36"
         />
         <div className="min-w-0 flex-1">
-          <h2 className="text-2xl font-bold leading-tight sm:text-4xl">{movie.title}</h2>
+          <h2 className="text-2xl font-bold leading-tight sm:text-3xl">{movie.title}</h2>
           {movie.originalTitle !== movie.title && <p className="text-sm text-navy-300">{movie.originalTitle}</p>}
           <p className="mt-1 text-sm text-navy-300 sm:text-base">{meta.join(' · ')}</p>
           {movie.directors.length > 0 && (

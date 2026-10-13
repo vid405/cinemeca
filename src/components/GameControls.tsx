@@ -17,7 +17,7 @@ interface Props {
 }
 
 const pill =
-  'flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs transition disabled:cursor-not-allowed sm:gap-2 sm:px-4 sm:text-base';
+  'flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs transition disabled:cursor-not-allowed sm:gap-2 sm:px-3.5 sm:text-sm';
 
 export function GameControls(p: Props) {
   const [confirming, setConfirming] = useState(false);
@@ -49,7 +49,7 @@ export function GameControls(p: Props) {
         <span className="whitespace-nowrap">{hintLabel}</span>
       </button>
 
-      <p className="min-w-0 whitespace-nowrap text-sm text-navy-200 sm:text-xl" aria-live="polite">
+      <p className="min-w-0 whitespace-nowrap text-sm text-navy-200 sm:text-lg" aria-live="polite">
         Intento <b className="font-bold text-near">{Math.min(p.attempts + 1, p.maxAttempts)}</b> de {p.maxAttempts}
       </p>
 

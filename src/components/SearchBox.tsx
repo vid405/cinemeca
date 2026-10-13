@@ -57,7 +57,7 @@ export function SearchBox({ onSelect, disabled, busy, excludeIds }: Props) {
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-3 rounded-2xl border border-navy-500/60 bg-navy-850/80 px-5 shadow-inner shadow-black/20 transition focus-within:border-navy-300 sm:px-8">
+      <div className="flex items-center gap-3 rounded-2xl border border-navy-500/60 bg-navy-850/80 px-5 shadow-inner shadow-black/20 transition focus-within:border-navy-300 sm:px-6">
         <input
           ref={inputRef}
           type="text"
@@ -76,12 +76,12 @@ export function SearchBox({ onSelect, disabled, busy, excludeIds }: Props) {
           aria-expanded={showList}
           aria-controls="search-results"
           aria-autocomplete="list"
-          className="h-14 min-w-0 flex-1 bg-transparent text-lg text-white outline-none placeholder:text-navy-300 disabled:opacity-50 sm:h-[5.5rem] sm:text-2xl"
+          className="h-14 min-w-0 flex-1 bg-transparent text-lg text-white outline-none placeholder:text-navy-300 disabled:opacity-50 sm:h-16 sm:text-xl"
         />
         {loading || busy ? (
           <Spinner className="h-6 w-6" />
         ) : (
-          <Icon.search className="h-6 w-6 text-navy-200 sm:h-8 sm:w-8" />
+          <Icon.search className="h-6 w-6 text-navy-200 sm:h-7 sm:w-7" />
         )}
       </div>
 

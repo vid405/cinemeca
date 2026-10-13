@@ -68,12 +68,12 @@ function StatCell({
 }) {
   return (
     <div
-      className={`flex min-h-[4.25rem] min-w-0 animate-flip-in flex-col items-center justify-center rounded-lg px-1.5 py-2 text-center sm:min-h-[5.25rem] sm:px-2 ${MATCH_BG[match]} ${className}`}
+      className={`flex min-h-[4.25rem] min-w-0 animate-flip-in flex-col items-center justify-center rounded-lg px-1.5 py-2 text-center sm:min-h-[3.9rem] sm:px-2 ${MATCH_BG[match]} ${className}`}
       style={{ animationDelay: `${delay}ms` }}
       aria-label={`${label}: ${MATCH_LABEL[match]}`}
     >
       <Label label={label} short={short} className="opacity-90" />
-      <span className="mt-1 text-lg font-semibold leading-none tabular-nums sm:text-2xl">{children}</span>
+      <span className="mt-1 text-lg font-semibold leading-none tabular-nums sm:text-xl">{children}</span>
     </div>
   );
 }
@@ -81,16 +81,16 @@ function StatCell({
 function PersonView({ clue, delay }: { clue: PersonClue; delay: number }) {
   const { person, match } = clue;
   return (
-    <div className="flex w-[3.1rem] animate-pop-in flex-col items-center sm:w-24" style={{ animationDelay: `${delay}ms` }}>
+    <div className="flex w-[3.1rem] animate-pop-in flex-col items-center sm:w-[4.5rem]" style={{ animationDelay: `${delay}ms` }}>
       <Avatar
         path={person.profilePath}
         name={person.name}
-        className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-[5.25rem] sm:w-[5.25rem] sm:text-lg ${
-          match === 'wrong' ? MATCH_RING.wrong : `${MATCH_RING[match]} ring-[3px] sm:ring-4`
+        className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-14 sm:w-14 sm:text-base ${
+          match === 'wrong' ? MATCH_RING.wrong : `${MATCH_RING[match]} ring-[3px]`
         }`}
       />
       <span
-        className={`mt-1.5 w-full truncate text-center text-[10px] leading-tight sm:mt-2 sm:text-[15px] ${MATCH_NAME[match]}`}
+        className={`mt-1.5 w-full truncate text-center text-[10px] leading-tight sm:text-xs ${MATCH_NAME[match]}`}
         title={`${person.name}: ${MATCH_LABEL[match]}`}
       >
         {shortName(person.name)}
@@ -115,8 +115,8 @@ function PeopleGroup({
   if (people.length === 0) return null;
   return (
     <div className={`flex min-w-0 flex-col items-center ${grow ? 'flex-1' : ''}`}>
-      <Label label={label} short={short} className="mb-2 text-navy-300 sm:mb-3" />
-      <div className="flex justify-center gap-0.5 sm:gap-5">
+      <Label label={label} short={short} className="mb-2 text-navy-300" />
+      <div className="flex justify-center gap-0.5 sm:gap-3">
         {people.map((c, i) => (
           <PersonView key={c.person.id} clue={c} delay={startDelay + i * 90} />
         ))}
@@ -135,11 +135,11 @@ function GuessCard({ result }: { result: GuessResult }) {
 
   return (
     <li
-      className={`animate-fade-up rounded-2xl border bg-navy-850/90 p-3.5 shadow-xl shadow-black/30 sm:p-6 ${
+      className={`animate-fade-up rounded-2xl border bg-navy-850/90 p-3.5 shadow-xl shadow-black/30 sm:p-5 ${
         isCorrect ? 'border-hit/80' : 'border-navy-600/70'
       }`}
     >
-      <div className="grid grid-cols-[5.5rem_1fr] gap-x-3.5 gap-y-3 sm:grid-cols-[12rem_1fr] sm:gap-x-6 sm:gap-y-4">
+      <div className="grid grid-cols-[5.5rem_1fr] gap-x-3.5 gap-y-3 sm:grid-cols-[8.5rem_1fr] sm:gap-x-5 sm:gap-y-3">
         <Poster
           path={movie.posterPath}
           title={movie.title}
@@ -148,18 +148,18 @@ function GuessCard({ result }: { result: GuessResult }) {
         />
 
         <div className="min-w-0 self-center sm:self-start">
-          <h3 className="text-xl font-bold leading-tight sm:text-4xl">
+          <h3 className="text-xl font-bold leading-tight sm:text-2xl">
             {movie.title}
             {isCorrect && <span className="ml-2">🎉</span>}
           </h3>
-          {movie.originalTitle !== movie.title && <p className="mt-0.5 truncate text-xs text-navy-300 sm:text-sm">{movie.originalTitle}</p>}
-          <div className="mt-2 flex flex-wrap gap-1.5 sm:mt-3 sm:gap-2.5">
+          {movie.originalTitle !== movie.title && <p className="mt-0.5 truncate text-xs text-navy-300">{movie.originalTitle}</p>}
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {clues.genres.values.map((g, i) => {
               const hit = clues.genres.matched.some((m) => m.id === g.id);
               return (
                 <span
                   key={g.id}
-                  className={`animate-pop-in rounded-full px-2.5 py-0.5 text-xs sm:px-3.5 sm:py-1 sm:text-lg ${hit ? 'bg-hit text-white' : 'bg-navy-700 text-white'}`}
+                  className={`animate-pop-in rounded-full px-2.5 py-0.5 text-xs sm:px-3 sm:text-sm ${hit ? 'bg-hit text-white' : 'bg-navy-700 text-white'}`}
                   style={{ animationDelay: `${i * 70}ms` }}
                 >
                   {g.name}
@@ -169,7 +169,7 @@ function GuessCard({ result }: { result: GuessResult }) {
           </div>
         </div>
 
-        <div className="col-span-2 grid grid-cols-3 gap-2 sm:col-span-1 sm:gap-2.5">
+        <div className="col-span-2 grid grid-cols-3 gap-2 sm:col-span-1">
           <StatCell label="Año" match={clues.year.match} delay={next()}>
             {clues.year.value ?? '—'}
             <Arrow direction={clues.year.direction} />
@@ -179,7 +179,7 @@ function GuessCard({ result }: { result: GuessResult }) {
             <Arrow direction={clues.boxOffice.direction} />
           </StatCell>
           <div
-            className={`row-span-2 flex animate-flip-in flex-col items-center rounded-lg px-2 pb-3 pt-2 text-center sm:pt-3 ${MATCH_BG[clues.studio.match]}`}
+            className={`row-span-2 flex animate-flip-in flex-col items-center rounded-lg px-2 pb-3 pt-2 text-center ${MATCH_BG[clues.studio.match]}`}
             style={{ animationDelay: `${next()}ms` }}
             aria-label={`Estudio: ${MATCH_LABEL[clues.studio.match]}`}
           >
@@ -192,10 +192,10 @@ function GuessCard({ result }: { result: GuessResult }) {
                   title={clues.studio.company?.name}
                   // Escala de grises invertida + "screen": los logos oscuros quedan claros y los
                   // fondos blancos opacos se vuelven negros y desaparecen sobre la celda.
-                  className="max-h-12 max-w-[88%] object-contain mix-blend-screen grayscale invert sm:max-h-16"
+                  className="max-h-12 max-w-[88%] object-contain mix-blend-screen grayscale invert sm:max-h-14"
                 />
               ) : (
-                <span className="line-clamp-3 text-sm font-bold uppercase leading-tight sm:text-lg">
+                <span className="line-clamp-3 text-sm font-bold uppercase leading-tight sm:text-base">
                   {clues.studio.company?.name ?? '—'}
                 </span>
               )}
@@ -211,7 +211,7 @@ function GuessCard({ result }: { result: GuessResult }) {
           </StatCell>
         </div>
 
-        <div className="col-span-2 flex items-start justify-between gap-1 border-t border-navy-600/80 pt-3 sm:justify-center sm:gap-6 sm:pt-5">
+        <div className="col-span-2 flex items-start justify-between gap-1 border-t border-navy-600/80 pt-3 sm:justify-center sm:gap-5">
           <PeopleGroup label="Director" short="Dir." people={clues.directors} startDelay={650} />
           {clues.lead && (
             <>
@@ -234,7 +234,7 @@ function GuessCard({ result }: { result: GuessResult }) {
 export function GuessList({ guesses }: { guesses: GuessResult[] }) {
   if (guesses.length === 0) return null;
   return (
-    <ol className="space-y-4 sm:space-y-6" aria-label="Intentos">
+    <ol className="space-y-4" aria-label="Intentos">
       {guesses.map((g) => (
         <GuessCard key={g.movie.id} result={g} />
       ))}

@@ -2,7 +2,13 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// Puerto fijo para dev y preview: el progreso vive en el localStorage de http://localhost:5173,
+// así que si el puerto cambiara parecería que se perdió.
+const PORT = 5173;
+
 export default defineConfig({
+  server: { port: PORT, strictPort: true },
+  preview: { port: PORT, strictPort: true },
   plugins: [
     react(),
     VitePWA({

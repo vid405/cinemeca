@@ -27,7 +27,16 @@ VITE_TMDB_TOKEN=eyJhbGciOiJIUzI1NiJ9...
 
 > Nota: al ser una app solo de frontend, el token se incluye en el bundle. Es un token de solo lectura, pero si publicas la app conviene pasar las llamadas por un proxy/backend propio.
 
-## Uso
+## Jugar cuando quieras
+
+1. Doble clic en **`Jugar CineMeca.bat`**: prepara la app y la abre en `http://localhost:5173`.
+2. La primera vez, en Chrome/Edge pulsa el icono de **Instalar** en la barra de direcciones. Queda como una app con su propio icono.
+3. Desde entonces puedes abrirla desde ese icono **sin el .bat**: la app queda guardada en el navegador (service worker) y habla directamente con TMDB. Solo hace falta internet para las películas.
+4. Vuelve a usar el `.bat` solo cuando haya cambios en el código, para cargar la versión nueva.
+
+Partidas ilimitadas. El progreso (XP, rachas, Filmoteca) se guarda en el `localStorage` del navegador para `http://localhost:5173` — por eso el puerto es fijo. Si borras los datos del sitio, o usas otro navegador o dispositivo, empiezas de cero.
+
+## Uso (desarrollo)
 
 ```bash
 npm install

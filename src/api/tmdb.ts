@@ -107,6 +107,7 @@ interface TmdbDetails {
   release_dates?: {
     results: { iso_3166_1: string; release_dates: { certification: string; type: number }[] }[];
   };
+  keywords?: { keywords: { id: number; name: string }[] };
 }
 
 // ---------- Normalización ----------
@@ -163,6 +164,7 @@ function toMovieData(d: TmdbDetails): MovieData {
     backdropPath: d.backdrop_path,
     overview: d.overview ?? '',
     tagline: d.tagline ?? '',
+    keywords: d.keywords?.keywords.map((k) => k.name) ?? [],
   };
 }
 
@@ -170,11 +172,13 @@ function toMovieData(d: TmdbDetails): MovieData {
 
 const detailsCache = new Map<number, Promise<MovieData>>();
 
-/** Detalles + créditos + clasificaciones en una sola llamada (append_to_response). */
+/** Detalles + créditos + clasificaciones + palabras clave en una sola llamada (append_to_response). */
 export function getMovieDetails(id: number): Promise<MovieData> {
   const cached = detailsCache.get(id);
   if (cached) return cached;
-  const promise = request<TmdbDetails>(`/movie/${id}`, { append_to_response: 'credits,release_dates' }).then(toMovieData);
+  const promise = request<TmdbDetails>(`/movie/${id}`, {
+    append_to_response: 'credits,release_dates,keywords',
+  }).then(toMovieData);
   detailsCache.set(id, promise);
   promise.catch(() => detailsCache.delete(id));
   return promise;

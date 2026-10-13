@@ -74,6 +74,22 @@ export const Icon = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </Svg>
   ),
+  message: (p: SVGProps<SVGSVGElement>) => (
+    <Svg {...p}>
+      <path d="M4 5h16v11H9l-5 4z" />
+    </Svg>
+  ),
+  tag: (p: SVGProps<SVGSVGElement>) => (
+    <Svg {...p}>
+      <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" />
+      <circle cx="8" cy="8" r="1.4" />
+    </Svg>
+  ),
+  check: (p: SVGProps<SVGSVGElement>) => (
+    <Svg {...p}>
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </Svg>
+  ),
   play: (p: SVGProps<SVGSVGElement>) => (
     <Svg {...p}>
       <path d="M7 4.5v15l12-7.5z" />

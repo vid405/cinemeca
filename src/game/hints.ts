@@ -1,12 +1,26 @@
-import type { MovieData } from './types';
+import type { MovieData, Person } from './types';
 
+export type HintKind = 'tagline' | 'cast' | 'keywords';
+
+/** Opción que se ofrece en el selector de pistas. */
+export interface HintOption {
+  kind: HintKind;
+  title: string;
+  description: string;
+  available: boolean;
+}
+
+/** Pista ya revelada (contenido calculado en el momento de pedirla). */
 export interface Hint {
-  id: string;
+  kind: HintKind;
   label: string;
-  value: string;
+  text?: string;
+  person?: Person;
+  tags?: string[];
 }
 
 const MASK = '▇▇▇';
+const MAX_TAGS = 6;
 
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -26,35 +40,48 @@ function firstSentence(text: string, max = 160): string {
   return sentence.length > max ? `${sentence.slice(0, max).trimEnd()}…` : sentence;
 }
 
-/** Pistas en orden de revelado. */
-export function buildHints(movie: MovieData): Hint[] {
-  const hints: Hint[] = [];
+export function hintOptions(movie: MovieData): HintOption[] {
+  return [
+    {
+      kind: 'tagline',
+      title: 'Frase',
+      description: 'La frase promocional',
+      available: Boolean(movie.tagline.trim() || movie.overview.trim()),
+    },
+    { kind: 'cast', title: 'Reparto', description: 'Un actor clave', available: movie.cast.length > 0 },
+    { kind: 'keywords', title: 'Temas', description: 'Palabras clave de la trama', available: movie.keywords.length > 0 },
+  ];
+}
 
-  const phrase = movie.tagline.trim() || (movie.overview.trim() ? firstSentence(movie.overview.trim()) : '');
-  if (phrase) {
-    hints.push({
-      id: 'tagline',
-      label: movie.tagline.trim() ? 'Frase promocional' : 'Fragmento de la sinopsis',
-      value: `“${redactTitle(phrase, movie)}”`,
-    });
+/**
+ * Actor a revelar: el primer secundario que el jugador aún no haya descubierto en sus
+ * intentos; si ya los encontró todos, el protagonista; y si no, cualquiera.
+ */
+export function pickCastHint(secret: MovieData, guesses: MovieData[]): Person | null {
+  const found = new Set(guesses.flatMap((g) => g.cast.map((p) => p.id)));
+  const [lead, ...supporting] = secret.cast;
+  return supporting.find((p) => !found.has(p.id)) ?? (lead && !found.has(lead.id) ? lead : null) ?? secret.cast[0] ?? null;
+}
+
+export function buildHint(kind: HintKind, secret: MovieData, guesses: MovieData[]): Hint | null {
+  switch (kind) {
+    case 'tagline': {
+      const tagline = secret.tagline.trim();
+      const phrase = tagline || (secret.overview.trim() ? firstSentence(secret.overview.trim()) : '');
+      if (!phrase) return null;
+      return {
+        kind,
+        label: tagline ? 'Frase promocional' : 'Fragmento de la sinopsis',
+        text: `“${redactTitle(phrase, secret)}”`,
+      };
+    }
+    case 'cast': {
+      const person = pickCastHint(secret, guesses);
+      return person ? { kind, label: 'Actor clave', person } : null;
+    }
+    case 'keywords': {
+      const tags = secret.keywords.slice(0, MAX_TAGS).map((k) => redactTitle(k, secret));
+      return tags.length ? { kind, label: 'Temas', tags } : null;
+    }
   }
-
-  const origin = [
-    movie.countries.map((c) => c.name).join(', '),
-    movie.originalLanguage.name && `idioma original: ${movie.originalLanguage.name.toLowerCase()}`,
-  ].filter(Boolean);
-  if (origin.length) hints.push({ id: 'origin', label: 'Origen', value: origin.join(' · ') });
-
-  const title = movie.title.trim();
-  if (title) {
-    const letters = title.replace(/[^\p{L}\p{N}]/gu, '').length;
-    const words = title.split(/\s+/).length;
-    hints.push({
-      id: 'first-letter',
-      label: 'Título',
-      value: `Empieza por “${title[0].toUpperCase()}” · ${words} ${words === 1 ? 'palabra' : 'palabras'}, ${letters} caracteres`,
-    });
-  }
-
-  return hints;
 }

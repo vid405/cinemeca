@@ -5,6 +5,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Manrope', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['"Bebas Neue"', 'Manrope', 'system-ui', 'sans-serif'],
       },
       colors: {
         navy: {

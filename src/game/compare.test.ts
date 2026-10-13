@@ -37,6 +37,7 @@ function movie(overrides: Partial<MovieData> = {}): MovieData {
     backdropPath: null,
     overview: '',
     tagline: '',
+    keywords: [],
     ...overrides,
   };
 }

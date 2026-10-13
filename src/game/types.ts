@@ -51,6 +51,8 @@ export interface MovieData {
   backdropPath: string | null;
   overview: string;
   tagline: string;
+  /** Palabras clave temáticas de TMDB (normalmente en inglés). */
+  keywords: string[];
 }
 
 /** Resultado ligero del buscador con autocompletado. */

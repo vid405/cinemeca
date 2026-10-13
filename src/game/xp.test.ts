@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeXp, getRankInfo, RANKS, XP_RULES } from './xp';
 import { applyRound, createEmptyProfile, getStats, normalizeProfile, RECENT_LIMIT } from './progress';
-import { buildHints, redactTitle } from './hints';
+import { buildHint, hintOptions, pickCastHint, redactTitle } from './hints';
 import { attemptsToNextHint, unlockedHints } from './modes';
 import type { MovieData } from './types';
 
@@ -90,16 +90,41 @@ describe('hints', () => {
     expect(redactTitle('Bienvenidos a Matrix.', { title: 'Matrix', originalTitle: 'The Matrix' })).toBe('Bienvenidos a ▇▇▇.');
   });
 
-  it('genera pistas de origen y primera letra', () => {
-    const movie: MovieData = {
-      id: 1, title: 'El laberinto del fauno', originalTitle: 'El laberinto del fauno', year: 2006, releaseDate: null,
-      genres: [], directors: [], cast: [], runtime: 119, revenue: null, score: null, certification: null, companies: [],
-      countries: [{ code: 'ES', name: 'España' }], originalLanguage: { code: 'es', name: 'Español' },
-      posterPath: null, backdropPath: null, overview: '', tagline: '',
-    };
-    const hints = buildHints(movie);
-    expect(hints.map((h) => h.id)).toEqual(['origin', 'first-letter']);
-    expect(hints[0].value).toBe('España · idioma original: español');
-    expect(hints[1].value).toContain('“E”');
+  const p = (id: number) => ({ id, name: `Actor ${id}`, profilePath: null });
+  const movie = (overrides: Partial<MovieData> = {}): MovieData => ({
+    id: 1, title: 'El laberinto del fauno', originalTitle: 'El laberinto del fauno', year: 2006, releaseDate: null,
+    genres: [], directors: [], cast: [p(1), p(2), p(3)], runtime: 119, revenue: null, score: null, certification: null,
+    companies: [], countries: [], originalLanguage: { code: 'es', name: 'Español' }, posterPath: null, backdropPath: null,
+    overview: 'En 1944, Ofelia descubre un laberinto. Allí conoce a un fauno.', tagline: '',
+    keywords: ['fairy tale', 'spanish civil war', 'el laberinto del fauno'],
+    ...overrides,
+  });
+
+  it('ofrece las 3 opciones y marca las que no tienen datos', () => {
+    expect(hintOptions(movie()).map((o) => [o.kind, o.available])).toEqual([
+      ['tagline', true],
+      ['cast', true],
+      ['keywords', true],
+    ]);
+    const empty = hintOptions(movie({ overview: '', cast: [], keywords: [] }));
+    expect(empty.every((o) => !o.available)).toBe(true);
+  });
+
+  it('frase: usa la tagline o, si falta, la primera frase de la sinopsis', () => {
+    expect(buildHint('tagline', movie({ tagline: 'Un cuento.' }), [])).toMatchObject({ label: 'Frase promocional', text: '“Un cuento.”' });
+    expect(buildHint('tagline', movie(), [])).toMatchObject({ label: 'Fragmento de la sinopsis', text: '“En 1944, Ofelia descubre un laberinto.”' });
+  });
+
+  it('reparto: revela un secundario que el jugador no haya descubierto aún', () => {
+    expect(pickCastHint(movie(), [])?.id).toBe(2);
+    const found = movie({ id: 9, cast: [p(2)] });
+    expect(pickCastHint(movie(), [found])?.id).toBe(3);
+    const all = movie({ id: 9, cast: [p(2), p(3)] });
+    expect(pickCastHint(movie(), [all])?.id).toBe(1);
+  });
+
+  it('temas: palabras clave con el título oculto', () => {
+    expect(buildHint('keywords', movie(), [])?.tags).toEqual(['fairy tale', 'spanish civil war', '▇▇▇']);
+    expect(buildHint('keywords', movie({ keywords: [] }), [])).toBeNull();
   });
 });

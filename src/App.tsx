@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { hasToken } from './api/tmdb';
 import { Footer } from './components/Footer';
 import { GameControls, HintList } from './components/GameControls';
 import { GuessList } from './components/GuessList';
 import { Header } from './components/Header';
 import { HelpModal } from './components/HelpModal';
+import { HintModal } from './components/HintModal';
 import { Home } from './components/Home';
 import { MenuDrawer, type MenuAction } from './components/MenuDrawer';
 import { ResultPanel } from './components/ResultPanel';
@@ -13,7 +14,9 @@ import { EmptyGuesses, ErrorState, GameSkeleton, MissingToken } from './componen
 import { StatsModal } from './components/StatsModal';
 import { Icon } from './components/ui';
 import { useGame } from './hooks/useGame';
+import { usePrefs } from './hooks/useProfile';
 import { cluesMode } from './modes';
+import { prefsStore } from './store/prefsStore';
 
 type ModalId = 'stats' | 'help' | 'menu' | null;
 type View = 'home' | 'play';
@@ -74,8 +77,25 @@ export default function App() {
 
 function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => void }) {
   const game = useGame(cluesMode);
+  const prefs = usePrefs();
+  const [hintOpen, setHintOpen] = useState(false);
+  const closeHints = useCallback(() => setHintOpen(false), []);
   registerNewGame(game.newGame);
   const guessedIds = useMemo(() => new Set(game.guesses.map((g) => g.movie.id)), [game.guesses]);
+
+  // Abrir el selector automáticamente cuando se desbloquea una pista nueva.
+  const lastUnlocked = useRef({ secretId: 0, unlocked: 0 });
+  const secretId = game.secret?.id ?? 0;
+  useEffect(() => {
+    const prev = lastUnlocked.current;
+    const isNewUnlock = prev.secretId === secretId && game.hintsUnlocked > prev.unlocked;
+    lastUnlocked.current = { secretId, unlocked: game.hintsUnlocked };
+    if (isNewUnlock && game.status === 'playing' && game.hintsRemaining > 0 && prefs.autoOpenHints) setHintOpen(true);
+  }, [secretId, game.hintsUnlocked, game.hintsRemaining, game.status, prefs.autoOpenHints]);
+
+  useEffect(() => {
+    if (game.status !== 'playing') setHintOpen(false);
+  }, [game.status]);
 
   if (game.status === 'loading') return <GameSkeleton />;
   if (game.status === 'error') return <ErrorState message={game.error ?? ''} onRetry={game.newGame} />;
@@ -91,10 +111,10 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
             attempts={game.guesses.length}
             maxAttempts={game.maxAttempts}
             hintsUsed={game.hintsUsed}
-            hintsUnlocked={game.hintsUnlocked}
-            hintsTotal={game.hints.length}
+            hintsTotal={game.hintsTotal}
+            hintsRemaining={game.hintsRemaining}
             nextHintIn={game.nextHintIn}
-            onHint={game.revealHint}
+            onHint={() => setHintOpen(true)}
             onGiveUp={game.giveUp}
             disabled={game.submitting}
           />
@@ -110,8 +130,27 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
         </div>
       )}
 
-      <HintList hints={game.hints} revealed={game.hintsUsed} />
+      <HintList hints={game.hints} />
       {game.guesses.length === 0 && !game.isOver ? <EmptyGuesses /> : <GuessList guesses={game.guesses} />}
+
+      {hintOpen && (
+        <HintModal
+          options={game.hintOptions}
+          used={game.hints}
+          remaining={game.hintsRemaining}
+          nextHintIn={game.nextHintIn}
+          showDontAskAgain={prefs.autoOpenHints}
+          onChoose={(kind) => {
+            game.revealHint(kind);
+            closeHints();
+          }}
+          onClose={closeHints}
+          onDontShowAgain={() => {
+            prefsStore.update({ autoOpenHints: false });
+            closeHints();
+          }}
+        />
+      )}
     </div>
   );
 }

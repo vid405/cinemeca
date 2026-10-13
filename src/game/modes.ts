@@ -1,4 +1,4 @@
-import type { Hint } from './hints';
+import type { Hint, HintKind, HintOption } from './hints';
 import type { MovieData } from './types';
 import type { ScoreInput } from './xp';
 
@@ -33,7 +33,10 @@ export interface GameMode<TResult extends EvaluatedGuess = EvaluatedGuess, TSecr
   /** Convierte la selección del buscador en datos completos comparables. */
   resolveGuess(movieId: number): Promise<MovieData>;
   evaluateGuess(guess: MovieData, secret: TSecret): TResult;
-  getHints(secret: TSecret): Hint[];
+  /** Tipos de pista que se ofrecen en el selector. */
+  getHintOptions(secret: TSecret): HintOption[];
+  /** Calcula una pista en el momento de pedirla (puede depender de los intentos hechos). */
+  buildHint(kind: HintKind, secret: TSecret, guesses: MovieData[]): Hint | null;
   score(input: ScoreInput): number;
 }
 

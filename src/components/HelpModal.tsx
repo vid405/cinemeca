@@ -34,7 +34,8 @@ export function HelpModal({ onClose, maxAttempts, hintSchedule }: { onClose: () 
             foto se ilumina en verde si coincide en el mismo papel y en amarillo si aparece en otro papel.
           </li>
           <li>
-            <b className="text-white">Pistas</b>: se desbloquean tras {hintSchedule.join(', ')} intentos.
+            <b className="text-white">Pistas</b>: ganas un uso tras {hintSchedule.join(', ')} intentos. En cada uso eliges entre
+            Frase (la frase promocional), Reparto (un actor clave) o Temas (palabras clave de la trama).
           </li>
         </ul>
         <p>

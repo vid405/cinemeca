@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { imageUrl } from '../api/tmdb';
-import type { Hint } from '../game/hints';
+import type { Hint, HintKind, HintOption } from '../game/hints';
 import { attemptsToNextHint, unlockedHints, type EvaluatedGuess, type GameMode } from '../game/modes';
 import type { MovieData } from '../game/types';
 import { profileStore } from '../store/profileStore';
@@ -21,8 +21,9 @@ export interface GameState<R extends EvaluatedGuess> {
   secret: MovieData | null;
   /** El intento más reciente primero. */
   guesses: R[];
+  hintOptions: HintOption[];
+  /** Pistas reveladas, en orden. */
   hints: Hint[];
-  hintsUsed: number;
   submitting: boolean;
   error: string | null;
   guessError: string | null;
@@ -33,8 +34,8 @@ const initialState = <R extends EvaluatedGuess>(): GameState<R> => ({
   status: 'loading',
   secret: null,
   guesses: [],
+  hintOptions: [],
   hints: [],
-  hintsUsed: 0,
   submitting: false,
   error: null,
   guessError: null,
@@ -89,7 +90,7 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
       let secret = pending ? await pending : null;
       if (!secret || exclude.has(secret.id)) secret = await mode.prepareRound({ excludeIds: exclude });
       if (id !== roundId.current) return;
-      commit({ ...initialState<R>(), status: 'playing', secret, hints: mode.getHints(secret) });
+      commit({ ...initialState<R>(), status: 'playing', secret, hintOptions: mode.getHintOptions(secret) });
       prefetchNext(secret.id);
     } catch (err) {
       if (id !== roundId.current) return;
@@ -100,13 +101,14 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
   const finish = useCallback(
     (s: GameState<R>, won: boolean, gaveUp: boolean): GameState<R> => {
       const attempts = s.guesses.length;
-      const xp = mode.score({ won, gaveUp, attempts, maxAttempts: mode.maxAttempts, hintsUsed: s.hintsUsed });
+      const hintsUsed = s.hints.length;
+      const xp = mode.score({ won, gaveUp, attempts, maxAttempts: mode.maxAttempts, hintsUsed });
       const { rankUp } = profileStore.recordRound({ movieId: s.secret!.id, won, attempts, xp });
       return {
         ...s,
         status: won ? 'won' : 'lost',
         submitting: false,
-        summary: { won, gaveUp, attempts, hintsUsed: s.hintsUsed, xp, rankUp },
+        summary: { won, gaveUp, attempts, hintsUsed, xp, rankUp },
       };
     },
     [mode],
@@ -139,12 +141,22 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     [mode, commit, finish],
   );
 
-  const revealHint = useCallback(() => {
-    const s = stateRef.current;
-    if (s.status !== 'playing') return;
-    if (s.hintsUsed >= unlockedHints(mode.hintSchedule, s.guesses.length, s.hints.length)) return;
-    commit({ ...s, hintsUsed: s.hintsUsed + 1 });
-  }, [mode, commit]);
+  const revealHint = useCallback(
+    (kind: HintKind) => {
+      const s = stateRef.current;
+      if (s.status !== 'playing' || !s.secret) return;
+      const available = s.hintOptions.filter((o) => o.available).length;
+      if (s.hints.length >= unlockedHints(mode.hintSchedule, s.guesses.length, available)) return;
+      if (s.hints.some((h) => h.kind === kind)) return;
+      const hint = mode.buildHint(
+        kind,
+        s.secret,
+        s.guesses.map((g) => g.movie),
+      );
+      if (hint) commit({ ...s, hints: [...s.hints, hint] });
+    },
+    [mode, commit],
+  );
 
   const giveUp = useCallback(() => {
     const s = stateRef.current;
@@ -163,12 +175,18 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
   }, []);
 
   const attempts = state.guesses.length;
+  const availableHints = state.hintOptions.filter((o) => o.available).length;
+  const hintsUnlocked = unlockedHints(mode.hintSchedule, attempts, availableHints);
   return {
     ...state,
     maxAttempts: mode.maxAttempts,
     isOver: state.status === 'won' || state.status === 'lost',
-    hintsUnlocked: unlockedHints(mode.hintSchedule, attempts, state.hints.length),
-    nextHintIn: attemptsToNextHint(mode.hintSchedule, attempts, state.hints.length),
+    hintsUsed: state.hints.length,
+    hintsTotal: availableHints,
+    hintsUnlocked,
+    /** Usos de pista disponibles ahora mismo. */
+    hintsRemaining: Math.max(0, hintsUnlocked - state.hints.length),
+    nextHintIn: attemptsToNextHint(mode.hintSchedule, attempts, availableHints),
     newGame,
     submitGuess,
     revealHint,

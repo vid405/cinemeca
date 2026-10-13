@@ -1,6 +1,7 @@
 import { getStats } from '../game/progress';
 import { getRankInfo, RANKS } from '../game/xp';
-import { useProfile } from '../hooks/useProfile';
+import { usePrefs, useProfile } from '../hooks/useProfile';
+import { prefsStore } from '../store/prefsStore';
 import { profileStore } from '../store/profileStore';
 import { Modal } from './ui';
 
@@ -15,6 +16,7 @@ function Stat({ value, label }: { value: string | number; label: string }) {
 
 export function StatsModal({ onClose }: { onClose: () => void }) {
   const profile = useProfile();
+  const prefs = usePrefs();
   const stats = getStats(profile);
   const info = getRankInfo(profile.xp);
   const maxDist = Math.max(1, ...profile.distribution);
@@ -72,7 +74,17 @@ export function StatsModal({ onClose }: { onClose: () => void }) {
         ))}
       </div>
 
-      <button onClick={reset} className="mt-6 text-xs text-navy-400 underline hover:text-red-300">
+      <label className="mt-6 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-navy-700/60 px-3 py-2.5 text-sm">
+        <span>Abrir el selector de pistas al desbloquear una</span>
+        <input
+          type="checkbox"
+          checked={prefs.autoOpenHints}
+          onChange={(e) => prefsStore.update({ autoOpenHints: e.target.checked })}
+          className="h-5 w-5 accent-[#fbb12b]"
+        />
+      </label>
+
+      <button onClick={reset} className="mt-4 text-xs text-navy-400 underline hover:text-red-300">
         Reiniciar progreso
       </button>
     </Modal>

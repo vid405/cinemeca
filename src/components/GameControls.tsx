@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react';
-import type { Hint } from '../game/hints';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Hint, HintKind } from '../game/hints';
 import { XP_RULES } from '../game/xp';
-import { Icon } from './ui';
+import { shortName } from '../utils/format';
+import { Avatar, Icon } from './ui';
 
 interface Props {
   attempts: number;
   maxAttempts: number;
   hintsUsed: number;
-  hintsUnlocked: number;
   hintsTotal: number;
+  hintsRemaining: number;
   nextHintIn: number | null;
   onHint: () => void;
   onGiveUp: () => void;
@@ -27,25 +28,21 @@ export function GameControls(p: Props) {
     return () => clearTimeout(t);
   }, [confirming]);
 
-  const canHint = p.hintsUsed < p.hintsUnlocked;
+  const canHint = p.hintsRemaining > 0;
   const hintLabel = canHint
-    ? `Pista −${XP_RULES.hintPenalty}`
+    ? p.hintsRemaining > 1
+      ? `Pista ×${p.hintsRemaining}`
+      : 'Pista'
     : p.nextHintIn != null
       ? `Pista en ${p.nextHintIn}`
-      : p.hintsUsed >= p.hintsTotal
-        ? 'Sin pistas'
-        : 'Pista';
+      : 'Sin pistas';
 
   return (
     <div className="flex items-center justify-between gap-2">
       <button
         onClick={p.onHint}
         disabled={p.disabled || !canHint}
-        className={`${pill} ${
-          canHint
-            ? 'border-near/70 text-near hover:bg-near/10'
-            : 'border-navy-600/70 text-navy-400'
-        }`}
+        className={`${pill} ${canHint ? 'border-near/70 text-near hover:bg-near/10' : 'border-navy-600/70 text-navy-400'}`}
         title={`Las pistas se desbloquean con los intentos. Cada una resta ${XP_RULES.hintPenalty} XP.`}
       >
         {canHint ? <Icon.bulb className="h-5 w-5" /> : <Icon.lock className="h-5 w-5" />}
@@ -70,16 +67,48 @@ export function GameControls(p: Props) {
   );
 }
 
-export function HintList({ hints, revealed }: { hints: Hint[]; revealed: number }) {
-  if (revealed === 0) return null;
+const HINT_ICONS: Record<HintKind, ReactNode> = {
+  tagline: <Icon.message className="h-5 w-5" />,
+  cast: <Icon.user className="h-5 w-5" />,
+  keywords: <Icon.tag className="h-5 w-5" />,
+};
+
+function HintBody({ hint }: { hint: Hint }) {
+  if (hint.person) {
+    return (
+      <span className="flex items-center gap-3">
+        <Avatar path={hint.person.profilePath} name={hint.person.name} className="h-11 w-11 rounded-full ring-2 ring-near" />
+        <span>
+          <span className="block font-semibold text-white">{hint.person.name}</span>
+          <span className="block text-xs text-navy-300">Aparece en el reparto principal · {shortName(hint.person.name)}</span>
+        </span>
+      </span>
+    );
+  }
+  if (hint.tags) {
+    return (
+      <span className="flex flex-wrap gap-1.5">
+        {hint.tags.map((t) => (
+          <span key={t} className="rounded-full bg-navy-700 px-2.5 py-0.5 text-sm text-navy-200">
+            {t}
+          </span>
+        ))}
+      </span>
+    );
+  }
+  return <span className="text-navy-200">{hint.text}</span>;
+}
+
+export function HintList({ hints }: { hints: Hint[] }) {
+  if (hints.length === 0) return null;
   return (
     <ul className="space-y-2">
-      {hints.slice(0, revealed).map((h) => (
-        <li key={h.id} className="flex animate-fade-up gap-3 rounded-xl border border-near/25 bg-near/[0.07] px-4 py-3 text-sm sm:text-base">
-          <Icon.bulb className="mt-0.5 h-5 w-5 shrink-0 text-near" />
-          <span>
-            <span className="label mr-2 text-near">{h.label}</span>
-            <span className="text-navy-200">{h.value}</span>
+      {hints.map((h) => (
+        <li key={h.kind} className="flex animate-fade-up gap-3 rounded-xl border border-near/25 bg-near/[0.07] px-4 py-3 text-sm sm:text-base">
+          <span className="mt-0.5 shrink-0 text-near">{HINT_ICONS[h.kind]}</span>
+          <span className="min-w-0 flex-1">
+            <span className="label mb-1.5 block text-near">{h.label}</span>
+            <HintBody hint={h} />
           </span>
         </li>
       ))}

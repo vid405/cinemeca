@@ -1,4 +1,4 @@
-import type { MovieData, MovieSuggestion, Person } from '../game/types';
+import type { Company, MovieData, MovieSuggestion, Person } from '../game/types';
 import { countryName, languageName } from '../utils/i18n';
 
 const API_BASE = 'https://api.themoviedb.org/3';
@@ -9,9 +9,9 @@ const token = (import.meta.env.VITE_TMDB_TOKEN ?? '').trim();
 
 export const hasToken = () => token.length > 0 && token !== 'pega_aqui_tu_token';
 
-export type PosterSize = 'w92' | 'w154' | 'w185' | 'w342' | 'w500' | 'w780';
+export type ImageSize = 'w45' | 'w92' | 'w154' | 'w185' | 'w342' | 'w500' | 'w780';
 
-export function imageUrl(path: string | null, size: PosterSize = 'w342'): string | null {
+export function imageUrl(path: string | null, size: ImageSize = 'w342'): string | null {
   return path ? `${IMAGE_BASE}/${size}${path}` : null;
 }
 
@@ -76,24 +76,36 @@ export interface TmdbPaged<T> {
   total_results: number;
 }
 
+interface TmdbCredit {
+  id: number;
+  name: string;
+  profile_path: string | null;
+}
+
 interface TmdbDetails {
   id: number;
   title: string;
   original_title: string;
   release_date?: string;
   runtime: number | null;
+  revenue: number;
+  vote_average: number;
+  vote_count: number;
   genres: { id: number; name: string }[];
   origin_country?: string[];
   production_countries: { iso_3166_1: string; name: string }[];
-  production_companies: { id: number; name: string }[];
+  production_companies: { id: number; name: string; logo_path: string | null }[];
   original_language: string;
   poster_path: string | null;
   backdrop_path: string | null;
   overview: string;
   tagline: string | null;
   credits?: {
-    cast: { id: number; name: string; order: number }[];
-    crew: { id: number; name: string; job: string }[];
+    cast: (TmdbCredit & { order: number })[];
+    crew: (TmdbCredit & { job: string })[];
+  };
+  release_dates?: {
+    results: { iso_3166_1: string; release_dates: { certification: string; type: number }[] }[];
   };
 }
 
@@ -101,22 +113,35 @@ interface TmdbDetails {
 
 const yearOf = (date?: string | null) => (date && /^\d{4}/.test(date) ? Number(date.slice(0, 4)) : null);
 
+const toPerson = ({ id, name, profile_path }: TmdbCredit): Person => ({ id, name, profilePath: profile_path });
+
 function uniqueBy<T>(items: T[], key: (t: T) => string | number): T[] {
   const seen = new Set<string | number>();
   return items.filter((i) => (seen.has(key(i)) ? false : (seen.add(key(i)), true)));
 }
 
+/** Clasificación de EE. UU. si existe (es la más completa en TMDB); si no, la del país de origen o España. */
+function pickCertification(d: TmdbDetails): string | null {
+  const results = d.release_dates?.results ?? [];
+  for (const code of ['US', ...(d.origin_country ?? []), 'ES', 'GB']) {
+    const cert = results
+      .find((r) => r.iso_3166_1 === code)
+      ?.release_dates.map((r) => r.certification.trim())
+      .find(Boolean);
+    if (cert) return cert;
+  }
+  return null;
+}
+
 function toMovieData(d: TmdbDetails): MovieData {
   const crew = d.credits?.crew ?? [];
-  const directors: Person[] = uniqueBy(
-    crew.filter((c) => c.job === 'Director').map(({ id, name }) => ({ id, name })),
-    (p) => p.id,
-  );
-  const cast: Person[] = [...(d.credits?.cast ?? [])]
+  const directors = uniqueBy(crew.filter((c) => c.job === 'Director').map(toPerson), (p) => p.id);
+  const cast = [...(d.credits?.cast ?? [])]
     .sort((a, b) => a.order - b.order)
     .slice(0, 5)
-    .map(({ id, name }) => ({ id, name }));
+    .map(toPerson);
   const countryCodes = d.origin_country?.length ? d.origin_country : d.production_countries.map((c) => c.iso_3166_1);
+  const companies: Company[] = d.production_companies.map((c) => ({ id: c.id, name: c.name, logoPath: c.logo_path }));
 
   return {
     id: d.id,
@@ -128,13 +153,16 @@ function toMovieData(d: TmdbDetails): MovieData {
     directors,
     cast,
     runtime: d.runtime || null,
+    revenue: d.revenue > 0 ? d.revenue : null,
+    score: d.vote_count > 0 ? Math.round(d.vote_average * 10) : null,
+    certification: pickCertification(d),
+    companies,
     countries: [...new Set(countryCodes)].map((code) => ({ code, name: countryName(code) })),
     originalLanguage: { code: d.original_language, name: languageName(d.original_language) },
     posterPath: d.poster_path,
     backdropPath: d.backdrop_path,
     overview: d.overview ?? '',
     tagline: d.tagline ?? '',
-    companies: d.production_companies.map((c) => c.name),
   };
 }
 
@@ -142,11 +170,11 @@ function toMovieData(d: TmdbDetails): MovieData {
 
 const detailsCache = new Map<number, Promise<MovieData>>();
 
-/** Detalles + créditos en una sola llamada (append_to_response). */
+/** Detalles + créditos + clasificaciones en una sola llamada (append_to_response). */
 export function getMovieDetails(id: number): Promise<MovieData> {
   const cached = detailsCache.get(id);
   if (cached) return cached;
-  const promise = request<TmdbDetails>(`/movie/${id}`, { append_to_response: 'credits' }).then(toMovieData);
+  const promise = request<TmdbDetails>(`/movie/${id}`, { append_to_response: 'credits,release_dates' }).then(toMovieData);
   detailsCache.set(id, promise);
   promise.catch(() => detailsCache.delete(id));
   return promise;

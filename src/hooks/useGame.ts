@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { imageUrl } from '../api/tmdb';
 import type { Hint } from '../game/hints';
-import type { EvaluatedGuess, GameMode } from '../game/modes';
+import { attemptsToNextHint, unlockedHints, type EvaluatedGuess, type GameMode } from '../game/modes';
 import type { MovieData } from '../game/types';
 import { profileStore } from '../store/profileStore';
 
@@ -141,9 +141,10 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
 
   const revealHint = useCallback(() => {
     const s = stateRef.current;
-    if (s.status !== 'playing' || s.hintsUsed >= s.hints.length) return;
+    if (s.status !== 'playing') return;
+    if (s.hintsUsed >= unlockedHints(mode.hintSchedule, s.guesses.length, s.hints.length)) return;
     commit({ ...s, hintsUsed: s.hintsUsed + 1 });
-  }, [commit]);
+  }, [mode, commit]);
 
   const giveUp = useCallback(() => {
     const s = stateRef.current;
@@ -161,10 +162,13 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const attempts = state.guesses.length;
   return {
     ...state,
     maxAttempts: mode.maxAttempts,
     isOver: state.status === 'won' || state.status === 'lost',
+    hintsUnlocked: unlockedHints(mode.hintSchedule, attempts, state.hints.length),
+    nextHintIn: attemptsToNextHint(mode.hintSchedule, attempts, state.hints.length),
     newGame,
     submitGuess,
     revealHint,

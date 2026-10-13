@@ -8,8 +8,9 @@ import { computeXp } from '../game/xp';
 export const cluesMode: GameMode<GuessResult> = {
   id: 'clues',
   name: 'Pistas',
-  description: 'Adivina la película comparando año, géneros, director, reparto, duración, país e idioma.',
-  maxAttempts: 8,
+  description: 'Adivina la película comparando año, taquilla, estudio, clasificación, puntuación, géneros y reparto.',
+  maxAttempts: 10,
+  hintSchedule: [3, 6, 8],
   prepareRound: ({ excludeIds }) => pickSecretMovie(excludeIds),
   resolveGuess: getMovieDetails,
   evaluateGuess: compareMovies,

@@ -39,6 +39,12 @@ export function buildHints(movie: MovieData): Hint[] {
     });
   }
 
+  const origin = [
+    movie.countries.map((c) => c.name).join(', '),
+    movie.originalLanguage.name && `idioma original: ${movie.originalLanguage.name.toLowerCase()}`,
+  ].filter(Boolean);
+  if (origin.length) hints.push({ id: 'origin', label: 'Origen', value: origin.join(' · ') });
+
   const title = movie.title.trim();
   if (title) {
     const letters = title.replace(/[^\p{L}\p{N}]/gu, '').length;
@@ -48,10 +54,6 @@ export function buildHints(movie: MovieData): Hint[] {
       label: 'Título',
       value: `Empieza por “${title[0].toUpperCase()}” · ${words} ${words === 1 ? 'palabra' : 'palabras'}, ${letters} caracteres`,
     });
-  }
-
-  if (movie.companies.length) {
-    hints.push({ id: 'company', label: 'Productora', value: movie.companies.slice(0, 2).join(', ') });
   }
 
   return hints;

@@ -1,5 +1,5 @@
 export const RECENT_LIMIT = 20;
-export const DISTRIBUTION_SLOTS = 8;
+export const DISTRIBUTION_SLOTS = 10;
 
 export interface Profile {
   version: 1;
@@ -73,7 +73,8 @@ export function normalizeProfile(raw: unknown): Profile {
   const base = createEmptyProfile();
   if (!raw || typeof raw !== 'object') return base;
   const p = { ...base, ...(raw as Partial<Profile>) };
-  if (!Array.isArray(p.distribution) || p.distribution.length !== DISTRIBUTION_SLOTS) p.distribution = base.distribution;
+  const dist = Array.isArray(p.distribution) ? p.distribution : [];
+  p.distribution = Array.from({ length: DISTRIBUTION_SLOTS }, (_, i) => Number(dist[i]) || 0);
   if (!Array.isArray(p.recentIds)) p.recentIds = [];
   return p;
 }

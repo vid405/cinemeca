@@ -1,7 +1,7 @@
 /** Atribución requerida por los términos de uso de la API de TMDB. */
 export function Footer() {
   return (
-    <footer className="mx-auto mt-8 w-full max-w-3xl px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center text-xs text-white/40">
+    <footer className="mx-auto mt-10 w-full max-w-4xl px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-center text-xs text-navy-400">
       <a
         href="https://www.themoviedb.org"
         target="_blank"

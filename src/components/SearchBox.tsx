@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MovieSuggestion } from '../game/types';
 import { MIN_QUERY_LENGTH, useMovieSearch } from '../hooks/useMovieSearch';
-import { Poster, Spinner } from './ui';
+import { Icon, Poster, Spinner } from './ui';
 
 interface Props {
   onSelect: (movieId: number) => void;
@@ -57,13 +57,10 @@ export function SearchBox({ onSelect, disabled, busy, excludeIds }: Props) {
 
   return (
     <div ref={containerRef} className="relative">
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-800 px-3 focus-within:border-amber-400/60">
-        <span aria-hidden className="text-white/40">
-          🔍
-        </span>
+      <div className="flex items-center gap-3 rounded-2xl border border-navy-500/60 bg-navy-850/80 px-5 shadow-inner shadow-black/20 transition focus-within:border-navy-300 sm:px-8">
         <input
           ref={inputRef}
-          type="search"
+          type="text"
           value={query}
           disabled={disabled}
           onChange={(e) => {
@@ -72,44 +69,44 @@ export function SearchBox({ onSelect, disabled, busy, excludeIds }: Props) {
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Escribe el título de una película…"
+          placeholder="Busca una película…"
           autoComplete="off"
           enterKeyHint="send"
           role="combobox"
           aria-expanded={showList}
           aria-controls="search-results"
           aria-autocomplete="list"
-          className="h-12 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-white/35 disabled:opacity-50"
+          className="h-14 min-w-0 flex-1 bg-transparent text-lg text-white outline-none placeholder:text-navy-300 disabled:opacity-50 sm:h-[5.5rem] sm:text-2xl"
         />
-        {(loading || busy) && <Spinner className="h-4 w-4" />}
+        {loading || busy ? (
+          <Spinner className="h-6 w-6" />
+        ) : (
+          <Icon.search className="h-6 w-6 text-navy-200 sm:h-8 sm:w-8" />
+        )}
       </div>
 
       {showList && (
         <ul
           id="search-results"
           role="listbox"
-          className="absolute inset-x-0 top-full z-30 mt-1.5 max-h-[60dvh] overflow-y-auto rounded-xl border border-white/10 bg-ink-800 py-1 shadow-2xl"
+          className="absolute inset-x-0 top-full z-30 mt-2 max-h-[60dvh] overflow-y-auto rounded-2xl border border-navy-500/60 bg-navy-800 py-2 shadow-2xl shadow-black/50"
         >
-          {error && <li className="px-4 py-3 text-sm text-red-300">{error}</li>}
-          {!error && !loading && items.length === 0 && (
-            <li className="px-4 py-3 text-sm text-white/50">Sin resultados.</li>
-          )}
+          {error && <li className="px-5 py-3 text-sm text-red-300">{error}</li>}
+          {!error && !loading && items.length === 0 && <li className="px-5 py-3 text-sm text-navy-300">Sin resultados.</li>}
           {items.map((s, i) => (
             <li key={s.id} role="option" aria-selected={i === active}>
               <button
                 type="button"
                 onClick={() => choose(s)}
                 onMouseEnter={() => setActive(i)}
-                className={`flex w-full items-center gap-3 px-3 py-2 text-left ${i === active ? 'bg-white/10' : ''}`}
+                className={`flex w-full items-center gap-4 px-5 py-2.5 text-left transition ${i === active ? 'bg-navy-600/70' : ''}`}
               >
-                <Poster path={s.posterPath} title={s.title} size="w92" className="h-12 w-8 shrink-0 rounded" />
+                <Poster path={s.posterPath} title={s.title} size="w92" className="h-14 w-10 shrink-0 rounded-md" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{s.title}</span>
-                  {s.originalTitle !== s.title && (
-                    <span className="block truncate text-xs text-white/40">{s.originalTitle}</span>
-                  )}
+                  <span className="block truncate text-base font-semibold">{s.title}</span>
+                  {s.originalTitle !== s.title && <span className="block truncate text-xs text-navy-300">{s.originalTitle}</span>}
                 </span>
-                <span className="shrink-0 text-sm tabular-nums text-white/50">{s.year ?? '—'}</span>
+                <span className="shrink-0 text-sm tabular-nums text-navy-300">{s.year ?? '—'}</span>
               </button>
             </li>
           ))}

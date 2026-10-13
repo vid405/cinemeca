@@ -8,21 +8,24 @@
 
 html,
 body {
-  @apply bg-ink-950 text-white antialiased;
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  @apply bg-navy-900 font-sans text-white antialiased;
   -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background-image: radial-gradient(ellipse at top, rgba(251, 191, 36, 0.06), transparent 55%);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(47, 69, 112, 0.35), transparent 70%),
+    linear-gradient(180deg, #0d182b 0%, #0a1322 100%);
   background-attachment: fixed;
+}
+
+@layer components {
+  .icon-btn {
+    @apply flex h-11 w-11 items-center justify-center rounded-full border border-navy-600/60 bg-navy-700/80 text-white shadow-lg shadow-black/30 transition hover:bg-navy-600 sm:h-14 sm:w-14;
+  }
+  .label {
+    @apply text-[10px] font-semibold uppercase tracking-[0.18em] sm:text-xs;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

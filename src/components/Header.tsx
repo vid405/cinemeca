@@ -1,48 +1,57 @@
 import { getRankInfo } from '../game/xp';
 import { useProfile } from '../hooks/useProfile';
+import { Icon } from './ui';
 
-export function Header({ onStats, onHelp }: { onStats: () => void; onHelp: () => void }) {
+interface Props {
+  onMenu: () => void;
+  onHome: () => void;
+  onHelp: () => void;
+  onProfile: () => void;
+}
+
+/** Barra superior: botones circulares en las esquinas y progreso compacto al centro. */
+export function Header({ onMenu, onHome, onHelp, onProfile }: Props) {
   const profile = useProfile();
   const info = getRankInfo(profile.xp);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/85 backdrop-blur pt-[env(safe-area-inset-top)]">
-      <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-2.5">
-        <h1 className="shrink-0 text-xl font-black tracking-tight">
-          <span className="text-amber-400">Cine</span>Meca
-        </h1>
+    <header className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:gap-3 sm:px-5 sm:pt-5">
+      <button className="icon-btn" onClick={onMenu} aria-label="Menú">
+        <Icon.menu className="h-5 w-5 sm:h-6 sm:w-6" />
+      </button>
+      <button className="icon-btn" onClick={onHome} aria-label="Inicio">
+        <Icon.home className="h-5 w-5 sm:h-6 sm:w-6" />
+      </button>
 
-        <button
-          onClick={onStats}
-          className="min-w-0 flex-1 rounded-lg px-2 py-1 text-left hover:bg-white/5"
-          aria-label="Ver estadísticas"
-        >
-          <div className="flex items-baseline justify-between gap-2 text-xs">
-            <span className="truncate font-semibold text-amber-300">{info.rank.name}</span>
-            <span className="shrink-0 tabular-nums text-white/50">
-              {info.next ? `${info.xpIntoRank}/${info.xpForNext} XP` : `${profile.xp} XP`}
-            </span>
-          </div>
-          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 transition-[width] duration-700"
-              style={{ width: `${Math.round(info.progress * 100)}%` }}
-            />
-          </div>
-        </button>
-
-        <div className="flex shrink-0 items-center gap-1">
-          <span
-            className="rounded-lg bg-white/5 px-2 py-1 text-sm tabular-nums"
-            title={`Racha actual · mejor: ${profile.bestStreak}`}
-          >
+      <button
+        onClick={onProfile}
+        className="mx-auto flex min-w-0 max-w-[16rem] flex-1 flex-col rounded-xl px-2 py-1 text-left transition hover:bg-white/5 sm:max-w-xs"
+        aria-label="Ver perfil y estadísticas"
+      >
+        <span className="flex items-baseline justify-between gap-2 text-[11px] sm:text-xs">
+          <span className="truncate font-bold text-near">{info.rank.name}</span>
+          <span className="shrink-0 tabular-nums text-navy-300">
             🔥 {profile.currentStreak}
+            <span className="hidden min-[420px]:inline">
+              {' '}
+              · {info.next ? `${info.xpIntoRank}/${info.xpForNext}` : profile.xp} XP
+            </span>
           </span>
-          <button onClick={onHelp} className="rounded-lg px-2 py-1 text-white/70 hover:bg-white/5" aria-label="Cómo jugar">
-            ?
-          </button>
-        </div>
-      </div>
+        </span>
+        <span className="mt-1 h-1.5 overflow-hidden rounded-full bg-navy-700">
+          <span
+            className="block h-full rounded-full bg-gradient-to-r from-near to-amber-300 transition-[width] duration-700"
+            style={{ width: `${Math.round(info.progress * 100)}%` }}
+          />
+        </span>
+      </button>
+
+      <button className="icon-btn" onClick={onHelp} aria-label="Cómo jugar">
+        <Icon.help className="h-5 w-5 sm:h-7 sm:w-7" />
+      </button>
+      <button className="icon-btn" onClick={onProfile} aria-label="Perfil">
+        <Icon.user className="h-5 w-5 sm:h-6 sm:w-6" />
+      </button>
     </header>
   );
 }

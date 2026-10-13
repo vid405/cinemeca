@@ -13,8 +13,8 @@ export default defineConfig({
         short_name: 'CineMeca',
         description: 'Adivina películas de todo el mundo con pistas. Partidas infinitas.',
         lang: 'es',
-        theme_color: '#0b0b0f',
-        background_color: '#0b0b0f',
+        theme_color: '#0b1424',
+        background_color: '#0b1424',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -33,7 +33,16 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'tmdb-images',
-              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              expiration: { maxEntries: 600, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'google-fonts',
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

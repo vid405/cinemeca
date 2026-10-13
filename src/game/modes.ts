@@ -24,6 +24,8 @@ export interface GameMode<TResult extends EvaluatedGuess = EvaluatedGuess, TSecr
   name: string;
   description: string;
   maxAttempts: number;
+  /** hintSchedule[i] = intentos necesarios para desbloquear la pista i. */
+  hintSchedule: number[];
   /** Para modos contrarreloj (aún no usado por la UI). */
   timeLimitMs?: number;
   /** Elige la película secreta (y cualquier material extra: frames, emojis…). */
@@ -33,4 +35,15 @@ export interface GameMode<TResult extends EvaluatedGuess = EvaluatedGuess, TSecr
   evaluateGuess(guess: MovieData, secret: TSecret): TResult;
   getHints(secret: TSecret): Hint[];
   score(input: ScoreInput): number;
+}
+
+/** Cuántas pistas están desbloqueadas tras `attempts` intentos. */
+export function unlockedHints(schedule: number[], attempts: number, available: number): number {
+  return Math.min(available, schedule.filter((t) => attempts >= t).length);
+}
+
+/** Intentos que faltan para la próxima pista (null si no quedan). */
+export function attemptsToNextHint(schedule: number[], attempts: number, available: number): number | null {
+  const next = schedule.slice(0, available).find((t) => t > attempts);
+  return next == null ? null : next - attempts;
 }

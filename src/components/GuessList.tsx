@@ -78,17 +78,38 @@ function StatCell({
   );
 }
 
-function PersonView({ clue, delay }: { clue: PersonClue; delay: number }) {
+function PersonView({
+  clue,
+  delay,
+  hiddenOnMobile,
+  mobileExtra = 0,
+}: {
+  clue: PersonClue;
+  delay: number;
+  hiddenOnMobile?: boolean;
+  /** En móvil, cuántas personas más del grupo quedan ocultas (se muestra "+N"). */
+  mobileExtra?: number;
+}) {
   const { person, match } = clue;
   return (
-    <div className="flex w-[3.1rem] animate-pop-in flex-col items-center sm:w-[5.25rem]" style={{ animationDelay: `${delay}ms` }}>
-      <Avatar
-        path={person.profilePath}
-        name={person.name}
-        className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-[4.25rem] sm:w-[4.25rem] sm:text-base ${
-          match === 'wrong' ? MATCH_RING.wrong : `${MATCH_RING[match]} ring-[3px]`
-        }`}
-      />
+    <div
+      className={`w-[3.1rem] animate-pop-in flex-col items-center sm:flex sm:w-[5.25rem] ${hiddenOnMobile ? 'hidden' : 'flex'}`}
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <span className="relative">
+        <Avatar
+          path={person.profilePath}
+          name={person.name}
+          className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-[4.25rem] sm:w-[4.25rem] sm:text-base ${
+            match === 'wrong' ? MATCH_RING.wrong : `${MATCH_RING[match]} ring-[3px]`
+          }`}
+        />
+        {mobileExtra > 0 && (
+          <span className="absolute -bottom-1 -right-1.5 rounded-full border-2 border-navy-850 bg-navy-600 px-1 text-[9px] font-bold leading-4 text-white sm:hidden">
+            +{mobileExtra}
+          </span>
+        )}
+      </span>
       <span
         className={`mt-1.5 w-full truncate text-center text-[10px] leading-tight sm:text-[13px] ${MATCH_NAME[match]}`}
         title={`${person.name}: ${MATCH_LABEL[match]}`}
@@ -105,20 +126,32 @@ function PeopleGroup({
   people,
   startDelay,
   grow,
+  mobileMax,
 }: {
   label: string;
   short?: string;
   people: PersonClue[];
   startDelay: number;
   grow?: boolean;
+  /** Máximo de personas visibles en móvil (p. ej. codirectores), para que la fila no se desborde. */
+  mobileMax?: number;
 }) {
   if (people.length === 0) return null;
+  // Las coincidencias primero, para que la persona visible en móvil sea la más informativa.
+  const ordered = mobileMax ? [...people].sort((a, b) => Number(b.match !== 'wrong') - Number(a.match !== 'wrong')) : people;
+  const hidden = mobileMax ? Math.max(0, ordered.length - mobileMax) : 0;
   return (
     <div className={`flex min-w-0 flex-col items-center ${grow ? 'flex-1' : ''}`}>
       <Label label={label} short={short} className="mb-2 text-navy-300" />
       <div className="flex justify-center gap-0.5 sm:gap-3">
-        {people.map((c, i) => (
-          <PersonView key={c.person.id} clue={c} delay={startDelay + i * 90} />
+        {ordered.map((c, i) => (
+          <PersonView
+            key={c.person.id}
+            clue={c}
+            delay={startDelay + i * 90}
+            hiddenOnMobile={mobileMax != null && i >= mobileMax}
+            mobileExtra={mobileMax != null && i === mobileMax - 1 ? hidden : 0}
+          />
         ))}
       </div>
     </div>
@@ -212,7 +245,7 @@ function GuessCard({ result }: { result: GuessResult }) {
         </div>
 
         <div className="col-span-2 flex items-start justify-between gap-1 border-t border-navy-600/80 pt-3 sm:justify-center sm:gap-5">
-          <PeopleGroup label="Director" short="Dir." people={clues.directors} startDelay={650} />
+          <PeopleGroup label="Director" short="Dir." people={clues.directors} startDelay={650} mobileMax={1} />
           {clues.lead && (
             <>
               <Divider />

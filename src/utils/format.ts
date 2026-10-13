@@ -23,3 +23,16 @@ export function initials(name: string): string {
     .map((p) => p[0].toUpperCase())
     .join('');
 }
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** "Hoy", "Ayer", o "12 oct" (con año si no es el actual), en hora local. */
+export function dayLabel(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const days = Math.round((startOfDay(now) - startOfDay(date)) / 86_400_000);
+  if (days === 0) return 'Hoy';
+  if (days === 1) return 'Ayer';
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  if (date.getFullYear() !== now.getFullYear()) opts.year = 'numeric';
+  return date.toLocaleDateString('es', opts).replace('.', '');
+}

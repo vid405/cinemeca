@@ -3,6 +3,7 @@ import { imageUrl } from '../api/tmdb';
 import type { Hint, HintKind, HintOption } from '../game/hints';
 import { attemptsToNextHint, unlockedHints, type EvaluatedGuess, type GameMode } from '../game/modes';
 import type { MovieData } from '../game/types';
+import { playedIds } from '../game/progress';
 import { profileStore } from '../store/profileStore';
 
 export type GameStatus = 'loading' | 'playing' | 'won' | 'lost' | 'error';
@@ -67,7 +68,8 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
   }, []);
 
   const excludeIds = useCallback(() => {
-    const ids = new Set(profileStore.getSnapshot().recentIds);
+    // Nunca repetir una película ya jugada.
+    const ids = playedIds(profileStore.getSnapshot());
     if (stateRef.current.secret) ids.add(stateRef.current.secret.id);
     return ids;
   }, []);
@@ -87,9 +89,12 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
 
   const newGame = useCallback(async () => {
     const id = ++roundId.current;
-    const exclude = excludeIds();
+    // La anterior aún no está en el historial si se abandonó con "Nueva película".
+    const previousId = stateRef.current.secret?.id;
     commit({ ...initialState<R>(), status: 'loading' });
     try {
+      const exclude = excludeIds();
+      if (previousId) exclude.add(previousId);
       const pending = prefetched.current;
       prefetched.current = null;
       let secret = pending ? await pending : null;
@@ -108,7 +113,20 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
       const attempts = s.guesses.length;
       const hintsUsed = s.hints.length;
       const xp = mode.score({ won, gaveUp, attempts, maxAttempts: mode.maxAttempts, hintsUsed });
-      const { rankUp } = profileStore.recordRound({ movieId: s.secret!.id, won, attempts, xp });
+      const m = s.secret!;
+      const { rankUp } = profileStore.recordRound({
+        movieId: m.id,
+        title: m.title,
+        originalTitle: m.originalTitle,
+        year: m.year,
+        posterPath: m.posterPath,
+        won,
+        gaveUp,
+        attempts,
+        hintsUsed,
+        xp,
+        playedAt: new Date().toISOString(),
+      });
       return {
         ...s,
         status: won ? 'won' : 'lost',

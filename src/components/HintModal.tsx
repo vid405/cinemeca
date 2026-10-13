@@ -64,7 +64,7 @@ export function HintModal({ options, used, remaining, nextHintIn, loading, error
           <span className="ml-2 text-sm">· −{XP_RULES.hintPenalty} XP cada una</span>
         </p>
 
-        {/* 3 + 2 en escritorio, 2 + 2 + 1 en móvil; las filas incompletas quedan centradas. */}
+        {/* 3 opciones por partida (rotan entre las 5); si hubiera menos, quedan centradas. */}
         <div className="mt-4 flex flex-wrap justify-center gap-2 sm:gap-3">
           {options.map((o) => {
             const isUsed = usedKinds.has(o.kind);
@@ -76,7 +76,7 @@ export function HintModal({ options, used, remaining, nextHintIn, loading, error
                 onClick={() => onChoose(o.kind)}
                 disabled={disabled}
                 aria-busy={isLoading}
-                className={`flex w-[calc(50%-0.25rem)] flex-col items-center rounded-xl border px-2 py-4 text-center transition sm:w-[calc(33.333%-0.5rem)] sm:px-3 sm:py-5 ${
+                className={`flex w-[calc(33.333%-0.34rem)] flex-col items-center rounded-xl border px-1.5 py-4 text-center transition sm:w-[calc(33.333%-0.5rem)] sm:px-3 sm:py-5 ${
                   isLoading
                     ? 'border-near bg-navy-900'
                     : disabled

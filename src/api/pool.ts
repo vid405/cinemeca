@@ -75,7 +75,8 @@ async function fetchCandidates(source: Source): Promise<TmdbListItem[]> {
 const isPlayable = (m: MovieData) =>
   m.year != null && !!m.runtime && m.directors.length > 0 && m.genres.length > 0 && m.cast.length > 0;
 
-export async function pickSecretMovie(excludeIds: ReadonlySet<number>, maxTries = 6): Promise<MovieData> {
+/** `excludeIds` crece con cada partida (nunca se repite una jugada), así que hay margen de reintentos. */
+export async function pickSecretMovie(excludeIds: ReadonlySet<number>, maxTries = 10): Promise<MovieData> {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < maxTries; attempt++) {
     try {

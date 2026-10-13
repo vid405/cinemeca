@@ -20,7 +20,7 @@ export function StatsModal({ onClose }: { onClose: () => void }) {
   const maxDist = Math.max(1, ...profile.distribution);
 
   const reset = () => {
-    if (window.confirm('¿Borrar todo tu progreso (XP, rachas y estadísticas)?')) void profileStore.reset();
+    if (window.confirm('¿Borrar todo tu progreso (XP, rachas, estadísticas y la Filmoteca)? Las películas ya jugadas podrán volver a salir.')) void profileStore.reset();
   };
 
   return (

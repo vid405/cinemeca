@@ -1,7 +1,7 @@
 import { pickSecretMovie } from '../api/pool';
 import { getMovieDetails, getPersonCredits } from '../api/tmdb';
 import { compareMovies, type GuessResult } from '../game/compare';
-import { buildHint, hintOptions } from '../game/hints';
+import { buildHint, hintOptions, pickHintOptions } from '../game/hints';
 import type { GameMode } from '../game/modes';
 import { computeXp } from '../game/xp';
 
@@ -15,7 +15,8 @@ export const cluesMode: GameMode<GuessResult> = {
   prepareRound: ({ excludeIds }) => pickSecretMovie(excludeIds),
   resolveGuess: getMovieDetails,
   evaluateGuess: compareMovies,
-  getHintOptions: hintOptions,
+  // 3 de las 5 opciones, distintas en cada partida.
+  getHintOptions: (secret) => pickHintOptions(hintOptions(secret)),
   buildHint: (kind, secret, guesses, previous) =>
     buildHint(kind, secret, guesses, { personCredits: getPersonCredits }, previous),
   score: computeXp,

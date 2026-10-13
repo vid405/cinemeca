@@ -1,5 +1,20 @@
-export const RECENT_LIMIT = 20;
 export const DISTRIBUTION_SLOTS = 10;
+
+/** Una partida terminada, tal como se muestra en la Filmoteca. */
+export interface PlayedMovie {
+  movieId: number;
+  title: string;
+  originalTitle: string;
+  year: number | null;
+  posterPath: string | null;
+  won: boolean;
+  gaveUp: boolean;
+  attempts: number;
+  hintsUsed: number;
+  xp: number;
+  /** Fecha ISO de cuándo terminó la partida. */
+  playedAt: string;
+}
 
 export interface Profile {
   version: 1;
@@ -12,8 +27,10 @@ export interface Profile {
   totalWinAttempts: number;
   /** distribution[i] = partidas ganadas en i+1 intentos. */
   distribution: number[];
-  /** Últimas películas secretas, la más reciente primero. */
-  recentIds: number[];
+  /** Todas las partidas jugadas, la más reciente primero. */
+  history: PlayedMovie[];
+  /** Películas jugadas antes de existir el historial (solo se conoce su id). */
+  legacyPlayedIds: number[];
 }
 
 export function createEmptyProfile(): Profile {
@@ -26,16 +43,12 @@ export function createEmptyProfile(): Profile {
     bestStreak: 0,
     totalWinAttempts: 0,
     distribution: Array(DISTRIBUTION_SLOTS).fill(0),
-    recentIds: [],
+    history: [],
+    legacyPlayedIds: [],
   };
 }
 
-export interface RoundRecord {
-  movieId: number;
-  won: boolean;
-  attempts: number;
-  xp: number;
-}
+export type RoundRecord = PlayedMovie;
 
 export function applyRound(profile: Profile, round: RoundRecord): Profile {
   const currentStreak = round.won ? profile.currentStreak + 1 : 0;
@@ -53,8 +66,13 @@ export function applyRound(profile: Profile, round: RoundRecord): Profile {
     bestStreak: Math.max(profile.bestStreak, currentStreak),
     totalWinAttempts: profile.totalWinAttempts + (round.won ? round.attempts : 0),
     distribution,
-    recentIds: [round.movieId, ...profile.recentIds.filter((id) => id !== round.movieId)].slice(0, RECENT_LIMIT),
+    history: [round, ...profile.history.filter((h) => h.movieId !== round.movieId)],
   };
+}
+
+/** Todas las películas que ya salieron: nunca se vuelven a elegir como secretas. */
+export function playedIds(profile: Profile): Set<number> {
+  return new Set([...profile.history.map((h) => h.movieId), ...profile.legacyPlayedIds]);
 }
 
 export function getStats(profile: Profile) {
@@ -72,9 +90,15 @@ export function getStats(profile: Profile) {
 export function normalizeProfile(raw: unknown): Profile {
   const base = createEmptyProfile();
   if (!raw || typeof raw !== 'object') return base;
-  const p = { ...base, ...(raw as Partial<Profile>) };
-  const dist = Array.isArray(p.distribution) ? p.distribution : [];
+  const r = raw as Partial<Profile> & { recentIds?: unknown };
+  const p: Profile = { ...base, ...r };
+  const dist = Array.isArray(r.distribution) ? r.distribution : [];
   p.distribution = Array.from({ length: DISTRIBUTION_SLOTS }, (_, i) => Number(dist[i]) || 0);
-  if (!Array.isArray(p.recentIds)) p.recentIds = [];
+  p.history = Array.isArray(r.history) ? r.history : [];
+  // Versiones anteriores guardaban solo los ids de las últimas 20 en `recentIds`.
+  const legacy = [...(Array.isArray(r.legacyPlayedIds) ? r.legacyPlayedIds : []), ...(Array.isArray(r.recentIds) ? r.recentIds : [])];
+  const inHistory = new Set(p.history.map((h) => h.movieId));
+  p.legacyPlayedIds = [...new Set(legacy.filter((id): id is number => typeof id === 'number' && !inHistory.has(id)))];
+  delete (p as { recentIds?: unknown }).recentIds;
   return p;
 }

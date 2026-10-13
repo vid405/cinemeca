@@ -7,6 +7,7 @@ import { Header } from './components/Header';
 import { HelpModal } from './components/HelpModal';
 import { HintModal } from './components/HintModal';
 import { Home } from './components/Home';
+import { Library } from './components/Library';
 import { MenuDrawer, type MenuAction } from './components/MenuDrawer';
 import { ResultPanel } from './components/ResultPanel';
 import { SearchBox } from './components/SearchBox';
@@ -17,7 +18,7 @@ import { useGame } from './hooks/useGame';
 import { cluesMode } from './modes';
 
 type ModalId = 'stats' | 'help' | 'menu' | null;
-type View = 'home' | 'play';
+type View = 'home' | 'play' | 'library';
 
 export default function App() {
   const [modal, setModal] = useState<ModalId>(null);
@@ -38,6 +39,7 @@ export default function App() {
         newGameRef.current();
       },
     },
+    { label: 'Filmoteca', icon: <Icon.clapper className="h-5 w-5" />, onClick: () => setView('library') },
     { label: 'Estadísticas', icon: <Icon.chart className="h-5 w-5" />, onClick: () => setModal('stats') },
     { label: 'Cómo jugar', icon: <Icon.help className="h-5 w-5" />, onClick: () => setModal('help') },
   ];
@@ -50,12 +52,13 @@ export default function App() {
         onHelp={() => setModal('help')}
         onProfile={() => setModal('stats')}
       />
-      <main className="mx-auto w-full max-w-[46rem] flex-1 px-4 pt-3">
+      <main className={`mx-auto w-full flex-1 px-4 pt-3 ${view === 'library' ? 'max-w-5xl' : 'max-w-[46rem]'}`}>
         {!configured ? (
           <MissingToken />
         ) : (
           <>
-            {view === 'home' && <Home onPlay={play} />}
+            {view === 'home' && <Home onPlay={play} onLibrary={() => setView('library')} />}
+            {view === 'library' && <Library onPlay={play} />}
             {/* La partida sigue montada al ir a Inicio para no perder el progreso. */}
             <div hidden={view !== 'play'}>
               <CluesGame registerNewGame={(fn) => (newGameRef.current = fn)} />

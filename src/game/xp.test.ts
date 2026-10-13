@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { computeXp, getRankInfo, RANKS, XP_RULES } from './xp';
-import { applyRound, createEmptyProfile, getStats, normalizeProfile, RECENT_LIMIT } from './progress';
+import { applyRound, createEmptyProfile, getStats, normalizeProfile, playedIds, type RoundRecord } from './progress';
 import {
   buildHint,
   hintOptions,
   pickCastHint,
+  pickHintOptions,
   pickRelatedFilm,
   redactTitle,
   sharesTitleWord,
@@ -48,13 +49,18 @@ describe('getRankInfo', () => {
   });
 });
 
+const round = (movieId: number, won: boolean, attempts: number, xp: number): RoundRecord => ({
+  movieId, title: `Peli ${movieId}`, originalTitle: `Peli ${movieId}`, year: 2000, posterPath: null,
+  won, gaveUp: false, attempts, hintsUsed: 0, xp, playedAt: '2026-10-12T20:00:00.000Z',
+});
+
 describe('applyRound', () => {
   it('lleva racha, mejor racha y la reinicia al perder', () => {
     let p = createEmptyProfile();
-    p = applyRound(p, { movieId: 1, won: true, attempts: 3, xp: 175 });
-    p = applyRound(p, { movieId: 2, won: true, attempts: 5, xp: 145 });
+    p = applyRound(p, round(1, true, 3, 175));
+    p = applyRound(p, round(2, true, 5, 145));
     expect(p.currentStreak).toBe(2);
-    p = applyRound(p, { movieId: 3, won: false, attempts: 10, xp: 10 });
+    p = applyRound(p, round(3, false, 10, 10));
     expect(p.currentStreak).toBe(0);
     expect(p.bestStreak).toBe(2);
     expect(p.xp).toBe(330);
@@ -62,19 +68,26 @@ describe('applyRound', () => {
     expect(getStats(p)).toMatchObject({ gamesPlayed: 3, winRate: 67, avgAttempts: 4 });
   });
 
-  it('guarda solo las últimas películas sin duplicados', () => {
+  it('guarda todo el historial, la más reciente primero, y nunca olvida una jugada', () => {
     let p = createEmptyProfile();
-    for (let i = 0; i < RECENT_LIMIT + 5; i++) p = applyRound(p, { movieId: i, won: false, attempts: 10, xp: 0 });
-    p = applyRound(p, { movieId: RECENT_LIMIT + 4, won: false, attempts: 10, xp: 0 });
-    expect(p.recentIds).toHaveLength(RECENT_LIMIT);
-    expect(new Set(p.recentIds).size).toBe(RECENT_LIMIT);
-    expect(p.recentIds[0]).toBe(RECENT_LIMIT + 4);
+    for (let i = 0; i < 100; i++) p = applyRound(p, round(i, i % 2 === 0, 4, 10));
+    expect(p.history).toHaveLength(100);
+    expect(p.history[0].movieId).toBe(99);
+    expect(playedIds(p).has(0)).toBe(true);
+    expect(playedIds(p).size).toBe(100);
   });
 
   it('migra perfiles con distribución de 8 casillas sin perder datos', () => {
     const p = normalizeProfile({ xp: 50, distribution: [1, 2, 3, 0, 0, 0, 0, 4] });
     expect(p.distribution).toEqual([1, 2, 3, 0, 0, 0, 0, 4, 0, 0]);
     expect(p.xp).toBe(50);
+  });
+
+  it('las películas del formato antiguo (recentIds) siguen excluidas', () => {
+    const p = normalizeProfile({ xp: 10, recentIds: [5, 6, 6] });
+    expect(p.legacyPlayedIds).toEqual([5, 6]);
+    expect(playedIds(p)).toEqual(new Set([5, 6]));
+    expect('recentIds' in p).toBe(false);
   });
 });
 
@@ -129,6 +142,24 @@ describe('hints', () => {
     ]);
     const empty = hintOptions(movie({ overview: '', cast: [], keywords: [], directors: [] }));
     expect(empty.every((o) => !o.available)).toBe(true);
+  });
+
+  it('ofrece 3 de las 5 opciones, priorizando las que tienen datos y en orden fijo', () => {
+    const all = hintOptions(movie({ directors: [p(50)] }));
+    const seq = [0.9, 0.1, 0.5, 0.3, 0.7]; // valores aleatorios fijos por opción
+    let i = 0;
+    const picked = pickHintOptions(all, 3, () => seq[i++]);
+    // Menores aleatorios: cast (0.1), director (0.3), temas (0.5) → en orden canónico.
+    expect(picked.map((o) => o.kind)).toEqual(['cast', 'keywords', 'director-film']);
+
+    // Sin palabras clave ni director, esas dos quedan fuera mientras haya otras con datos.
+    const partial = hintOptions(movie({ keywords: [] }));
+    for (let n = 0; n < 20; n++) {
+      const kinds = pickHintOptions(partial).map((o) => o.kind);
+      expect(kinds).toHaveLength(3);
+      expect(kinds).not.toContain('keywords');
+      expect(kinds).not.toContain('director-film');
+    }
   });
 
   it('frase: usa la tagline o, si falta, la primera frase de la sinopsis', async () => {

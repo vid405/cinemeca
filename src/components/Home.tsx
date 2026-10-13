@@ -1,7 +1,7 @@
 import { getStats } from '../game/progress';
 import { getRankInfo } from '../game/xp';
 import { useProfile } from '../hooks/useProfile';
-import { Icon } from './ui';
+import { Icon, Poster } from './ui';
 
 const UPCOMING = [
   { name: 'Fotograma borroso', desc: 'Adivina a partir de una imagen que se va aclarando.', emoji: '🌫️' },
@@ -9,7 +9,7 @@ const UPCOMING = [
   { name: 'Contrarreloj', desc: 'Todas las que puedas antes de que acabe el tiempo.', emoji: '⏱️' },
 ];
 
-export function Home({ onPlay }: { onPlay: () => void }) {
+export function Home({ onPlay, onLibrary }: { onPlay: () => void; onLibrary: () => void }) {
   const profile = useProfile();
   const stats = getStats(profile);
   const info = getRankInfo(profile.xp);
@@ -35,6 +35,28 @@ export function Home({ onPlay }: { onPlay: () => void }) {
           <span className="block text-sm text-navy-300 sm:text-base">
             10 intentos. Año, taquilla, estudio, clasificación, puntuación, géneros y reparto.
           </span>
+        </span>
+      </button>
+
+      <button
+        onClick={onLibrary}
+        className="flex w-full items-center gap-4 rounded-2xl border border-navy-600/70 bg-navy-850/80 p-4 text-left transition hover:border-navy-400 sm:p-5"
+      >
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-navy-700 text-near">
+          <Icon.clapper className="h-6 w-6" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg font-bold">Filmoteca</span>
+          <span className="block text-sm text-navy-300">
+            {profile.history.length
+              ? `${profile.history.length} ${profile.history.length === 1 ? 'película jugada' : 'películas jugadas'}`
+              : 'Aquí aparecerán las películas que juegues'}
+          </span>
+        </span>
+        <span className="hidden -space-x-3 sm:flex" aria-hidden>
+          {profile.history.slice(0, 5).map((h) => (
+            <Poster key={h.movieId} path={h.posterPath} title={h.title} size="w92" className="h-14 w-10 rounded border-2 border-navy-850" />
+          ))}
         </span>
       </button>
 

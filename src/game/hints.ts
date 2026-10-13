@@ -118,6 +118,23 @@ export function hintOptions(movie: MovieData): HintOption[] {
   ];
 }
 
+export const HINT_CHOICES_PER_ROUND = 3;
+
+/**
+ * Elige al azar qué opciones se ofrecen en una partida (3 de 5), priorizando las que
+ * tienen datos. Se conserva el orden canónico para que la ventana sea predecible.
+ */
+export function pickHintOptions(options: HintOption[], count = HINT_CHOICES_PER_ROUND, random: () => number = Math.random): HintOption[] {
+  const shuffled = options.map((o) => ({ o, r: random() }));
+  const chosen = new Set(
+    shuffled
+      .sort((a, b) => Number(b.o.available) - Number(a.o.available) || a.r - b.r)
+      .slice(0, count)
+      .map((x) => x.o.kind),
+  );
+  return options.filter((o) => chosen.has(o.kind));
+}
+
 /** Acceso a datos que necesitan algunas pistas (se inyecta para mantener esto puro y testeable). */
 export interface HintDeps {
   personCredits(personId: number, role: 'director' | 'actor'): Promise<PersonCredit[]>;

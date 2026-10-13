@@ -50,7 +50,7 @@ export default function App() {
         onHelp={() => setModal('help')}
         onProfile={() => setModal('stats')}
       />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-3">
+      <main className="mx-auto w-full max-w-[46rem] flex-1 px-4 pt-3">
         {!configured ? (
           <MissingToken />
         ) : (

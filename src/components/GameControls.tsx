@@ -49,7 +49,7 @@ export function GameControls(p: Props) {
         <span className="whitespace-nowrap">{hintLabel}</span>
       </button>
 
-      <p className="min-w-0 whitespace-nowrap text-sm text-navy-200 sm:text-lg" aria-live="polite">
+      <p className="min-w-0 whitespace-nowrap text-sm text-navy-200 sm:text-base" aria-live="polite">
         Intento <b className="font-bold text-near">{Math.min(p.attempts + 1, p.maxAttempts)}</b> de {p.maxAttempts}
       </p>
 

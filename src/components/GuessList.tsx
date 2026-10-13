@@ -81,16 +81,16 @@ function StatCell({
 function PersonView({ clue, delay }: { clue: PersonClue; delay: number }) {
   const { person, match } = clue;
   return (
-    <div className="flex w-[3.1rem] animate-pop-in flex-col items-center sm:w-[4.5rem]" style={{ animationDelay: `${delay}ms` }}>
+    <div className="flex w-[3.1rem] animate-pop-in flex-col items-center sm:w-[5.25rem]" style={{ animationDelay: `${delay}ms` }}>
       <Avatar
         path={person.profilePath}
         name={person.name}
-        className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-14 sm:w-14 sm:text-base ${
+        className={`h-11 w-11 rounded-full text-xs ring-offset-2 ring-offset-navy-850 sm:h-[4.25rem] sm:w-[4.25rem] sm:text-base ${
           match === 'wrong' ? MATCH_RING.wrong : `${MATCH_RING[match]} ring-[3px]`
         }`}
       />
       <span
-        className={`mt-1.5 w-full truncate text-center text-[10px] leading-tight sm:text-xs ${MATCH_NAME[match]}`}
+        className={`mt-1.5 w-full truncate text-center text-[10px] leading-tight sm:text-[13px] ${MATCH_NAME[match]}`}
         title={`${person.name}: ${MATCH_LABEL[match]}`}
       >
         {shortName(person.name)}
@@ -148,7 +148,7 @@ function GuessCard({ result }: { result: GuessResult }) {
         />
 
         <div className="min-w-0 self-center sm:self-start">
-          <h3 className="text-xl font-bold leading-tight sm:text-2xl">
+          <h3 className={`text-xl font-bold leading-tight sm:text-3xl ${isCorrect ? 'text-hit' : ''}`}>
             {movie.title}
             {isCorrect && <span className="ml-2">🎉</span>}
           </h3>
@@ -159,7 +159,7 @@ function GuessCard({ result }: { result: GuessResult }) {
               return (
                 <span
                   key={g.id}
-                  className={`animate-pop-in rounded-full px-2.5 py-0.5 text-xs sm:px-3 sm:text-sm ${hit ? 'bg-hit text-white' : 'bg-navy-700 text-white'}`}
+                  className={`animate-pop-in rounded-full px-2.5 py-0.5 text-xs sm:px-3 sm:py-1 sm:text-sm ${hit ? 'bg-hit text-white' : 'bg-navy-700 text-white'}`}
                   style={{ animationDelay: `${i * 70}ms` }}
                 >
                   {g.name}
@@ -192,7 +192,7 @@ function GuessCard({ result }: { result: GuessResult }) {
                   title={clues.studio.company?.name}
                   // Escala de grises invertida + "screen": los logos oscuros quedan claros y los
                   // fondos blancos opacos se vuelven negros y desaparecen sobre la celda.
-                  className="max-h-12 max-w-[88%] object-contain mix-blend-screen grayscale invert sm:max-h-14"
+                  className="max-h-12 max-w-[88%] object-contain mix-blend-screen grayscale invert sm:max-h-[4.5rem]"
                 />
               ) : (
                 <span className="line-clamp-3 text-sm font-bold uppercase leading-tight sm:text-base">

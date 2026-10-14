@@ -1,13 +1,10 @@
-import { pickSecretMovie } from '../api/pool';
+import { pickSecretMovie, worldSource } from '../api/pool';
 import { getMovieDetails, getPersonCredits } from '../api/tmdb';
 import { compareMovies, type GuessResult } from '../game/compare';
-import type { RoundRules } from '../game/difficulty';
+import { relaxedTier, rulesFor, tieredXp, tierFor, WORLD_TIERS } from '../game/difficulty';
 import { buildHint, hintOptions, pickHintOptions } from '../game/hints';
 import type { GameMode } from '../game/modes';
 import { computeXp } from '../game/xp';
-
-/** Una pista tras el intento 4 y otra tras el 8: máximo 2 por partida. */
-const CLUES_RULES: RoundRules = { maxAttempts: 10, hintSchedule: [4, 8] };
 
 /** Piezas comunes a los modos que comparan atributos (Pistas y Hollywood). */
 export const cardModeBase = {
@@ -22,9 +19,10 @@ export const cardModeBase = {
 export const cluesMode: GameMode<GuessResult> = {
   id: 'clues',
   name: 'Pistas',
-  description: 'Cine de todo el mundo y de cualquier época. 10 intentos, perder no resta XP.',
-  rules: () => CLUES_RULES,
-  prepareRound: ({ excludeIds }) => pickSecretMovie(excludeIds),
+  description: 'Cine de todo el mundo. Se vuelve más difícil al subir de rango y fallar resta XP.',
+  rules: (xp) => rulesFor(tierFor(WORLD_TIERS, xp)),
+  prepareRound: ({ excludeIds, rules }) =>
+    pickSecretMovie(excludeIds, (attempt) => worldSource(relaxedTier(WORLD_TIERS, rules.tier?.level ?? 0, attempt))),
   ...cardModeBase,
-  score: (input) => computeXp(input),
+  score: (input, rules) => (rules.tier ? tieredXp(input, rules.tier) : computeXp(input)),
 };

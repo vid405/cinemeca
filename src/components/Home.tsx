@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { HOLLYWOOD_TIERS, hollywoodTier } from '../game/difficulty';
+import { HOLLYWOOD_TIERS, tierFor, WORLD_TIERS, type DifficultyTier } from '../game/difficulty';
 import { getStats } from '../game/progress';
 import { getRankInfo, RANKS } from '../game/xp';
 import { useProfile } from '../hooks/useProfile';
@@ -55,6 +55,31 @@ function ModeCard({
   );
 }
 
+/** Barra de niveles del modo, reglas del nivel actual y qué cambia en el siguiente. */
+function TierProgress({ tiers, xp }: { tiers: DifficultyTier[]; xp: number }) {
+  const tier = tierFor(tiers, xp);
+  const next = tiers[tier.level + 1];
+  return (
+    <>
+      <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
+        {tiers.map((t) => (
+          <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
+        ))}
+      </span>
+      <span className="mt-2 block text-xs">
+        Nivel <b className="text-white">{tier.rank}</b>: {tier.maxAttempts} intentos, desde {tier.fromYear}, fallar −{tier.lossPenalty} XP.
+        {next && (
+          <>
+            {' '}
+            En <b className="text-white">{next.rank}</b> ({RANKS[next.level].minXp} XP): películas desde {next.fromYear}
+            {next.maxAttempts < tier.maxAttempts ? `, ${next.maxAttempts} intentos` : ''}.
+          </>
+        )}
+      </span>
+    </>
+  );
+}
+
 export function Home({
   onPlay,
   inProgress,
@@ -67,8 +92,6 @@ export function Home({
   const profile = useProfile();
   const stats = getStats(profile);
   const info = getRankInfo(profile.xp);
-  const tier = hollywoodTier(profile.xp);
-  const nextTier = HOLLYWOOD_TIERS[tier.level + 1];
 
   return (
     <div className="animate-fade-up space-y-6 py-4 sm:space-y-8 sm:py-10">
@@ -83,25 +106,13 @@ export function Home({
         <ModeCard title="Hollywood" emoji="🎬" accent continuing={inProgress.includes('hollywood')} onClick={() => onPlay('hollywood')}>
           Los grandes éxitos de EE. UU., como en Spotle. Sube de dificultad con tu rango y{' '}
           <b className="text-red-300">fallar resta XP</b>.
-          <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${HOLLYWOOD_TIERS.length}`}>
-            {HOLLYWOOD_TIERS.map((t) => (
-              <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
-            ))}
-          </span>
-          <span className="mt-2 block text-xs">
-            Nivel <b className="text-white">{tier.rank}</b>: {tier.maxAttempts} intentos, desde {tier.fromYear}, fallar −{tier.lossPenalty} XP.
-            {nextTier && (
-              <>
-                {' '}
-                En <b className="text-white">{nextTier.rank}</b> ({RANKS[nextTier.level].minXp} XP): películas desde {nextTier.fromYear}
-                {nextTier.maxAttempts < tier.maxAttempts ? `, ${nextTier.maxAttempts} intentos` : ''}.
-              </>
-            )}
-          </span>
+          <TierProgress tiers={HOLLYWOOD_TIERS} xp={profile.xp} />
         </ModeCard>
 
         <ModeCard title="Pistas" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
-          Cine de todo el mundo y de cualquier época. 10 intentos, dificultad fija y perder no resta XP.
+          Cine de todo el mundo. Cada rango trae más idiomas y épocas, y{' '}
+          <b className="text-red-300">fallar resta XP</b> (un poco menos que en Hollywood).
+          <TierProgress tiers={WORLD_TIERS} xp={profile.xp} />
         </ModeCard>
       </div>
 

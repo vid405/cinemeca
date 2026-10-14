@@ -1,5 +1,5 @@
 import { BOX_OFFICE_TOLERANCE, SCORE_TOLERANCE, YEAR_TOLERANCE } from '../game/compare';
-import { HOLLYWOOD_TIERS } from '../game/difficulty';
+import { HOLLYWOOD_TIERS, WORLD_TIERS, type DifficultyTier } from '../game/difficulty';
 import { RANKS, XP_RULES } from '../game/xp';
 import { MATCH_BG } from './GuessList';
 import { Modal } from './ui';
@@ -40,51 +40,60 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
           </li>
         </ul>
 
-        <h3 className="pt-1 font-bold text-white">🌍 Pistas</h3>
         <p>
-          Cine de todo el mundo. 10 intentos y 2 pistas. Acertar da {XP_RULES.winBase} XP + {XP_RULES.perUnusedAttempt} por cada intento
-          que sobre; perder da {XP_RULES.loss} XP de consolación (rendirse {XP_RULES.giveUp}).
+          Acertar da {XP_RULES.winBase} XP + {XP_RULES.perUnusedAttempt} por cada intento que sobre, más el bonus de tu nivel.{" "}
+          <b className="text-red-300">Fallar o rendirse resta XP</b> y puedes bajar de rango (el total nunca baja de 0). Cada rango que
+          alcanzas hace ambos modos más difíciles:
         </p>
 
         <h3 className="pt-1 font-bold text-white">🎬 Hollywood</h3>
-        <p>
-          Solo grandes películas de EE. UU. Cada rango que alcanzas lo hace más difícil, acertar da más XP y{' '}
-          <b className="text-red-300">fallar o rendirse resta XP</b> (puedes bajar de rango).
-        </p>
-        <div className="overflow-x-auto rounded-lg border border-navy-600">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-navy-700 text-navy-200">
-              <tr>
-                <th className="px-2 py-1.5">Rango</th>
-                <th className="px-2 py-1.5">Películas</th>
-                <th className="px-2 py-1.5">Intentos</th>
-                <th className="px-2 py-1.5">Pistas</th>
-                <th className="px-2 py-1.5">XP</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HOLLYWOOD_TIERS.map((t) => (
-                <tr key={t.level} className="border-t border-navy-700">
-                  <td className="px-2 py-1.5 font-semibold text-white">
-                    {t.rank}
-                    <span className="block font-normal text-navy-400">{RANKS[t.level].minXp}+ XP</span>
-                  </td>
-                  <td className="px-2 py-1.5">
-                    Desde {t.fromYear}, ≥{(t.minVotes / 1000).toLocaleString('es')} mil votos
-                  </td>
-                  <td className="px-2 py-1.5">{t.maxAttempts}</td>
-                  <td className="px-2 py-1.5">{t.hintSchedule.length}</td>
-                  <td className="px-2 py-1.5">
-                    {t.winBonus > 0 && <span className="text-hit">+{t.winBonus}</span>}
-                    {t.winBonus > 0 && ' / '}
-                    <span className="text-red-300">−{t.lossPenalty}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <p>Solo grandes películas de EE. UU. en inglés.</p>
+        <TierTable tiers={HOLLYWOOD_TIERS} describe={(t) => `Desde ${t.fromYear}, ≥${fmtVotes(t.minVotes)} votos`} />
+
+        <h3 className="pt-1 font-bold text-white">🌍 Pistas</h3>
+        <p>Cine de todo el mundo; cada nivel suma idiomas y épocas, y el cine no anglófono puede ser menos conocido.</p>
+        <TierTable
+          tiers={WORLD_TIERS}
+          describe={(t) => `Desde ${t.fromYear}, ≥${fmtVotes(t.minVotes)} votos, ${t.languages.length} idiomas extranjeros`}
+        />
       </div>
     </Modal>
+  );
+}
+
+const fmtVotes = (n: number) => n.toLocaleString('es');
+
+function TierTable<T extends DifficultyTier>({ tiers, describe }: { tiers: T[]; describe: (t: T) => string }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-navy-600">
+      <table className="w-full text-left text-xs">
+        <thead className="bg-navy-700 text-navy-200">
+          <tr>
+            <th className="px-2 py-1.5">Rango</th>
+            <th className="px-2 py-1.5">Películas</th>
+            <th className="px-2 py-1.5">Intentos</th>
+            <th className="px-2 py-1.5">Pistas</th>
+            <th className="px-2 py-1.5">XP</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tiers.map((t) => (
+            <tr key={t.level} className="border-t border-navy-700">
+              <td className="px-2 py-1.5 font-semibold text-white">
+                {t.rank}
+                <span className="block font-normal text-navy-400">{RANKS[t.level].minXp}+ XP</span>
+              </td>
+              <td className="px-2 py-1.5">{describe(t)}</td>
+              <td className="px-2 py-1.5">{t.maxAttempts}</td>
+              <td className="px-2 py-1.5">{t.hintSchedule.length}</td>
+              <td className="whitespace-nowrap px-2 py-1.5">
+                {t.winBonus > 0 && <span className="text-hit">+{t.winBonus} / </span>}
+                <span className="text-red-300">−{t.lossPenalty}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

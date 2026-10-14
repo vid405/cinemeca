@@ -1,16 +1,14 @@
-import type { HollywoodTier } from '../game/difficulty';
+import type { HollywoodTier, WorldTier } from '../game/difficulty';
 import type { MovieData } from '../game/types';
 import { getMovieDetails, getMovieList, TmdbError, type TmdbListItem } from './tmdb';
 
 /**
- * Selección aleatoria de la película secreta mezclando popular, top_rated y
- * discover (con idioma original y década al azar) para tener variedad mundial.
+ * Selección aleatoria de la película secreta. Cada modo aporta su fuente según el
+ * nivel del jugador: el modo Pistas mezcla popular, top_rated y discover (con idioma
+ * y década al azar) para tener variedad mundial; Hollywood se limita a EE. UU.
  */
 
-const MIN_VOTES = 500;
 const TMDB_MAX_PAGE = 500;
-
-const LANGUAGES = ['es', 'fr', 'ja', 'ko', 'it', 'de', 'zh', 'cn', 'hi', 'pt', 'sv', 'da', 'ru', 'tr', 'fa', 'pl', 'no', 'nl', 'th', 'ta', 'te', 'ml'];
 
 const DECADES: [number, number][] = [
   [1930, 1959],
@@ -43,26 +41,38 @@ export interface Source {
   maxPage: number;
   /** Votos mínimos que debe tener cada candidata. */
   minVotes: number;
+  /** Año mínimo de estreno (también se filtra en popular/top_rated, que no lo admiten). */
+  fromYear: number;
 }
 
-/** Fuente del modo Pistas: mezcla mundial de popular, top_rated y discover. */
-export function worldSource(): Source {
+/** Fuente del modo Pistas: mezcla mundial acotada por el nivel. */
+export function worldSource(tier: WorldTier): Source {
+  const base = { minVotes: tier.minVotes, fromYear: tier.fromYear };
   const r = Math.random();
-  if (r < 0.2) return { path: '/movie/popular', params: {}, maxPage: 40, minVotes: MIN_VOTES };
-  if (r < 0.45) return { path: '/movie/top_rated', params: {}, maxPage: 80, minVotes: MIN_VOTES };
+  if (r < 0.15) return { path: '/movie/popular', params: {}, maxPage: 40, ...base };
+  if (r < 0.35) return { path: '/movie/top_rated', params: {}, maxPage: 80, ...base };
 
   const params: Source['params'] = {
     include_adult: false,
-    'vote_count.gte': MIN_VOTES,
     sort_by: pick(SORTS),
+    'primary_release_date.gte': `${tier.fromYear}-01-01`,
   };
-  if (Math.random() < 0.55) params.with_original_language = pick(LANGUAGES);
+
+  // Cine no anglófono: umbral de votos propio (tiene muchos menos) y más idiomas en cada nivel.
+  if (Math.random() < tier.foreignShare) {
+    params.with_original_language = pick(tier.languages);
+    params['vote_count.gte'] = tier.foreignMinVotes;
+    return { path: '/discover/movie', params, maxPage: 10, ...base, minVotes: tier.foreignMinVotes };
+  }
+
+  params['vote_count.gte'] = tier.minVotes;
   if (Math.random() < 0.5) {
-    const [from, to] = pick(DECADES);
-    params['primary_release_date.gte'] = `${from}-01-01`;
+    const decades = DECADES.filter(([, to]) => to >= tier.fromYear);
+    const [from, to] = pick(decades);
+    params['primary_release_date.gte'] = `${Math.max(from, tier.fromYear)}-01-01`;
     params['primary_release_date.lte'] = `${to}-12-31`;
   }
-  return { path: '/discover/movie', params, maxPage: 20, minVotes: MIN_VOTES };
+  return { path: '/discover/movie', params, maxPage: 30, ...base };
 }
 
 /** Fuente del modo Hollywood: cine de EE. UU. en inglés, acotado por el nivel. */
@@ -79,6 +89,7 @@ export function hollywoodSource(tier: HollywoodTier): Source {
     },
     maxPage: tier.pages,
     minVotes: tier.minVotes,
+    fromYear: tier.fromYear,
   };
 }
 
@@ -93,14 +104,16 @@ async function fetchCandidates(source: Source): Promise<TmdbListItem[]> {
   return data.results;
 }
 
+const releaseYear = (m: TmdbListItem) => (m.release_date ? Number(m.release_date.slice(0, 4)) : 0);
+
 const isPlayable = (m: MovieData) =>
   m.year != null && !!m.runtime && m.directors.length > 0 && m.genres.length > 0 && m.cast.length > 0;
 
 /** `excludeIds` crece con cada partida (nunca se repite una jugada), así que hay margen de reintentos. */
 export async function pickSecretMovie(
   excludeIds: ReadonlySet<number>,
-  sourceFor: (attempt: number) => Source = worldSource,
-  maxTries = 10,
+  sourceFor: (attempt: number) => Source,
+  maxTries = 12,
 ): Promise<MovieData> {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < maxTries; attempt++) {
@@ -108,7 +121,12 @@ export async function pickSecretMovie(
       const source = sourceFor(attempt);
       const candidates = shuffle(
         (await fetchCandidates(source)).filter(
-          (m) => !m.adult && m.poster_path && m.vote_count >= source.minVotes && !excludeIds.has(m.id),
+          (m) =>
+            !m.adult &&
+            m.poster_path &&
+            m.vote_count >= source.minVotes &&
+            releaseYear(m) >= source.fromYear &&
+            !excludeIds.has(m.id),
         ),
       );
       for (const c of candidates.slice(0, 3)) {

@@ -91,14 +91,12 @@ export function Home({
 
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <ModeCard title="Hollywood" emoji="🎬" accent continuing={inProgress.includes('hollywood')} onClick={() => onPlay('hollywood')}>
-          Los grandes éxitos de EE. UU., como en Spotle. Sube de dificultad con tu rango y{' '}
-          <b className="text-red-300">fallar resta XP</b>.
+          Los grandes éxitos.
           <TierProgress tiers={HOLLYWOOD_TIERS} xp={profile.xp} />
         </ModeCard>
 
         <ModeCard title="Es Cine" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
-          Cine de todo el mundo. Cada rango trae más idiomas y épocas, y{' '}
-          <b className="text-red-300">fallar resta XP</b> (un poco menos que en Hollywood).
+          Cine de todo el mundo
           <TierProgress tiers={WORLD_TIERS} xp={profile.xp} />
         </ModeCard>
       </div>

@@ -1,4 +1,4 @@
-import type { HollywoodTier, WorldTier } from '../game/difficulty';
+import { ACCLAIMED_MIN_RATING, type HollywoodTier, type WorldTier } from '../game/difficulty';
 import type { MovieData } from '../game/types';
 import { getMovieDetails, getMovieList, TmdbError, type TmdbListItem } from './tmdb';
 
@@ -75,8 +75,30 @@ export function worldSource(tier: WorldTier): Source {
   return { path: '/discover/movie', params, maxPage: 30, ...base };
 }
 
-/** Fuente del modo Hollywood: cine de EE. UU. en inglés, acotado por el nivel. */
+/** Idiomas del cine internacional premiado (TMDB admite varios separados por "|"). */
+const ACCLAIMED_LANGUAGES = ['es', 'fr', 'ja', 'ko', 'it', 'de', 'pt', 'zh', 'cn', 'da', 'sv', 'fa', 'hi', 'te', 'ar', 'pl', 'hu'];
+
+/** Cine internacional muy bien valorado: extranjero o británico (en inglés, pero no de EE. UU.). */
+export function acclaimedInternationalSource(tier: HollywoodTier): Source {
+  const params: Source['params'] = {
+    include_adult: false,
+    'vote_count.gte': tier.intlMinVotes,
+    'vote_average.gte': ACCLAIMED_MIN_RATING,
+    'primary_release_date.gte': `${tier.fromYear}-01-01`,
+    sort_by: pick(SORTS),
+  };
+  if (Math.random() < 0.3) {
+    params.with_original_language = 'en';
+    params.with_origin_country = 'GB';
+  } else {
+    params.with_original_language = ACCLAIMED_LANGUAGES.join('|');
+  }
+  return { path: '/discover/movie', params, maxPage: 8, minVotes: tier.intlMinVotes, fromYear: tier.fromYear };
+}
+
+/** Fuente del modo Hollywood: sobre todo EE. UU.; a veces, cine internacional premiado. */
 export function hollywoodSource(tier: HollywoodTier): Source {
+  if (Math.random() < tier.intlShare) return acclaimedInternationalSource(tier);
   return {
     path: '/discover/movie',
     params: {
@@ -108,6 +130,18 @@ const releaseYear = (m: TmdbListItem) => (m.release_date ? Number(m.release_date
 
 const isPlayable = (m: MovieData) =>
   m.year != null && !!m.runtime && m.directors.length > 0 && m.genres.length > 0 && m.cast.length > 0;
+
+/**
+ * Elige al azar una película de una lista fija de ids que aún no se haya jugado.
+ * Devuelve null si ya se jugaron todas (o ninguna es jugable).
+ */
+export async function pickFromList(ids: readonly number[], excludeIds: ReadonlySet<number>, maxTries = 3): Promise<MovieData | null> {
+  for (const id of shuffle(ids.filter((i) => !excludeIds.has(i))).slice(0, maxTries)) {
+    const details = await getMovieDetails(id);
+    if (isPlayable(details)) return details;
+  }
+  return null;
+}
 
 /** `excludeIds` crece con cada partida (nunca se repite una jugada), así que hay margen de reintentos. */
 export async function pickSecretMovie(

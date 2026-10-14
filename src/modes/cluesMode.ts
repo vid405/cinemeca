@@ -19,7 +19,7 @@ export const cardModeBase = {
 export const cluesMode: GameMode<GuessResult> = {
   id: 'clues',
   name: 'Es Cine',
-  description: 'Cine de todo el mundo. Se vuelve más difícil al subir de rango y fallar resta XP.',
+  description: 'Cine de todo el mundo',
   rules: (xp) => rulesFor(tierFor(WORLD_TIERS, xp)),
   prepareRound: ({ excludeIds, rules }) =>
     pickSecretMovie(excludeIds, (attempt) => worldSource(relaxedTier(WORLD_TIERS, rules.tier?.level ?? 0, attempt))),

@@ -27,22 +27,33 @@ export interface RoundRules {
 }
 
 /**
- * Hollywood: cine de EE. UU. en inglés. Tamaños aproximados medidos en TMDB:
- * ~330, ~600, ~1.300, ~2.400 y ~4.000 películas.
+ * Hollywood: los grandes éxitos. Sobre todo cine de EE. UU. en inglés (~330, ~600,
+ * ~1.300, ~2.400 y ~4.000 películas por nivel, medido en TMDB), más cine
+ * internacional premiado: una lista curada (ver data/acclaimedInternational.ts) y
+ * una búsqueda de películas extranjeras o británicas con nota ≥ 7,5.
  */
 export interface HollywoodTier extends DifficultyTier {
   minVotes: number;
   /** Páginas aproximadas de resultados en /discover (20 por página). */
   pages: number;
+  /** Votos mínimos del cine internacional premiado (~31, ~60, ~95, ~170 y ~310 películas). */
+  intlMinVotes: number;
+  /** Probabilidad de buscar en cine internacional premiado en vez de en EE. UU. */
+  intlShare: number;
 }
 
 export const HOLLYWOOD_TIERS: HollywoodTier[] = [
-  { level: 0, rank: RANKS[0].name, minVotes: 10000, fromYear: 1990, maxAttempts: 10, hintSchedule: [4, 8], winBonus: 0, lossPenalty: 15, pages: 16 },
-  { level: 1, rank: RANKS[1].name, minVotes: 7000, fromYear: 1980, maxAttempts: 10, hintSchedule: [4, 8], winBonus: 20, lossPenalty: 25, pages: 30 },
-  { level: 2, rank: RANKS[2].name, minVotes: 4000, fromYear: 1970, maxAttempts: 9, hintSchedule: [5, 8], winBonus: 40, lossPenalty: 35, pages: 63 },
-  { level: 3, rank: RANKS[3].name, minVotes: 2000, fromYear: 1960, maxAttempts: 8, hintSchedule: [5], winBonus: 60, lossPenalty: 50, pages: 120 },
-  { level: 4, rank: RANKS[4].name, minVotes: 1000, fromYear: 1940, maxAttempts: 8, hintSchedule: [6], winBonus: 80, lossPenalty: 65, pages: 200 },
+  { level: 0, rank: RANKS[0].name, minVotes: 10000, intlMinVotes: 4000, intlShare: 0.1, fromYear: 1990, maxAttempts: 10, hintSchedule: [4, 8], winBonus: 0, lossPenalty: 15, pages: 16 },
+  { level: 1, rank: RANKS[1].name, minVotes: 7000, intlMinVotes: 3000, intlShare: 0.12, fromYear: 1980, maxAttempts: 10, hintSchedule: [4, 8], winBonus: 20, lossPenalty: 25, pages: 30 },
+  { level: 2, rank: RANKS[2].name, minVotes: 4000, intlMinVotes: 2000, intlShare: 0.15, fromYear: 1970, maxAttempts: 9, hintSchedule: [5, 8], winBonus: 40, lossPenalty: 35, pages: 63 },
+  { level: 3, rank: RANKS[3].name, minVotes: 2000, intlMinVotes: 1200, intlShare: 0.18, fromYear: 1960, maxAttempts: 8, hintSchedule: [5], winBonus: 60, lossPenalty: 50, pages: 120 },
+  { level: 4, rank: RANKS[4].name, minVotes: 1000, intlMinVotes: 700, intlShare: 0.2, fromYear: 1940, maxAttempts: 8, hintSchedule: [6], winBonus: 80, lossPenalty: 65, pages: 200 },
 ];
+
+/** Probabilidad de que la secreta de Hollywood salga de la lista curada internacional. */
+export const CURATED_SHARE = 0.15;
+/** Nota mínima (0–10) del cine internacional que entra en Hollywood por búsqueda. */
+export const ACCLAIMED_MIN_RATING = 7.5;
 
 /**
  * Es Cine (cine mundial). El cine no anglófono tiene muchos menos votos en TMDB

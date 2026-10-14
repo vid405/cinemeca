@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CURATED_SHARE,
   HOLLYWOOD_TIERS,
   relaxedTier,
   rulesFor,
@@ -10,6 +11,7 @@ import {
   type HollywoodTier,
   type WorldTier,
 } from './difficulty';
+import { ACCLAIMED_INTERNATIONAL_IDS } from '../data/acclaimedInternational';
 import { applyRound, createEmptyProfile, type PlayedMovie } from './progress';
 import { computeXp, RANKS } from './xp';
 
@@ -97,5 +99,30 @@ describe('XP por nivel', () => {
     const p = applyRound({ ...createEmptyProfile(), xp: 20 }, loss);
     expect(p.xp).toBe(0);
     expect(p.history[0].xp).toBe(-65);
+  });
+});
+
+describe('cine internacional premiado en Hollywood', () => {
+  it('cada nivel baja el umbral de votos y sube la probabilidad', () => {
+    for (let i = 1; i < HOLLYWOOD_TIERS.length; i++) {
+      const [prev, cur] = [HOLLYWOOD_TIERS[i - 1], HOLLYWOOD_TIERS[i]];
+      expect(cur.intlMinVotes).toBeLessThan(prev.intlMinVotes);
+      expect(cur.intlShare).toBeGreaterThan(prev.intlShare);
+    }
+  });
+
+  it('el umbral internacional es menor que el de EE. UU. (tiene menos votos en TMDB)', () => {
+    for (const t of HOLLYWOOD_TIERS) expect(t.intlMinVotes).toBeLessThan(t.minVotes);
+  });
+
+  it('la lista curada no tiene ids repetidos e incluye los clásicos pedidos', () => {
+    expect(new Set(ACCLAIMED_INTERNATIONAL_IDS).size).toBe(ACCLAIMED_INTERNATIONAL_IDS.length);
+    for (const id of [18079 /* Nueve reinas */, 670 /* Old Boy */, 496243 /* Parásitos */]) {
+      expect(ACCLAIMED_INTERNATIONAL_IDS).toContain(id);
+    }
+  });
+
+  it('el cine internacional nunca domina el modo', () => {
+    for (const t of HOLLYWOOD_TIERS) expect(t.intlShare + CURATED_SHARE).toBeLessThan(0.5);
   });
 });

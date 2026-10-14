@@ -47,7 +47,7 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
         </p>
 
         <h3 className="pt-1 font-bold text-white">🎬 Hollywood</h3>
-        <p>Solo grandes películas de EE. UU. en inglés.</p>
+        <p>Los grandes éxitos de Hollywood, más clásicos internacionales premiados y muy reconocidos (Old Boy, Parásitos, Nueve reinas…).</p>
         <TierTable tiers={HOLLYWOOD_TIERS} describe={(t) => `Desde ${t.fromYear}, ≥${fmtVotes(t.minVotes)} votos`} />
 
         <h3 className="pt-1 font-bold text-white">🌍 Es Cine</h3>

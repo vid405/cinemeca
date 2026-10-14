@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { HOLLYWOOD_TIERS, tierFor, WORLD_TIERS, type DifficultyTier } from '../game/difficulty';
 import { getStats } from '../game/progress';
-import { getRankInfo, RANKS } from '../game/xp';
+import { getRankInfo } from '../game/xp';
 import { useProfile } from '../hooks/useProfile';
 import { Icon, Poster } from './ui';
 
@@ -55,10 +55,9 @@ function ModeCard({
   );
 }
 
-/** Barra de niveles del modo, reglas del nivel actual y qué cambia en el siguiente. */
+/** Barra de niveles del modo con el nivel actual (el detalle de cada nivel está en la ayuda). */
 function TierProgress({ tiers, xp }: { tiers: DifficultyTier[]; xp: number }) {
   const tier = tierFor(tiers, xp);
-  const next = tiers[tier.level + 1];
   return (
     <>
       <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
@@ -67,14 +66,7 @@ function TierProgress({ tiers, xp }: { tiers: DifficultyTier[]; xp: number }) {
         ))}
       </span>
       <span className="mt-2 block text-xs">
-        Nivel <b className="text-white">{tier.rank}</b>: {tier.maxAttempts} intentos, desde {tier.fromYear}, fallar −{tier.lossPenalty} XP.
-        {next && (
-          <>
-            {' '}
-            En <b className="text-white">{next.rank}</b> ({RANKS[next.level].minXp} XP): películas desde {next.fromYear}
-            {next.maxAttempts < tier.maxAttempts ? `, ${next.maxAttempts} intentos` : ''}.
-          </>
-        )}
+        Nivel <b className="text-white">{tier.rank}</b>
       </span>
     </>
   );

@@ -4,7 +4,7 @@ import { getMovieDetails, getMovieList, TmdbError, type TmdbListItem } from './t
 
 /**
  * Selección aleatoria de la película secreta. Cada modo aporta su fuente según el
- * nivel del jugador: el modo Pistas mezcla popular, top_rated y discover (con idioma
+ * nivel del jugador: el modo Es Cine mezcla popular, top_rated y discover (con idioma
  * y década al azar) para tener variedad mundial; Hollywood se limita a EE. UU.
  */
 
@@ -45,7 +45,7 @@ export interface Source {
   fromYear: number;
 }
 
-/** Fuente del modo Pistas: mezcla mundial acotada por el nivel. */
+/** Fuente del modo Es Cine: mezcla mundial acotada por el nivel. */
 export function worldSource(tier: WorldTier): Source {
   const base = { minVotes: tier.minVotes, fromYear: tier.fromYear };
   const r = Math.random();

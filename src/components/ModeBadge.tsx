@@ -10,7 +10,7 @@ export function ModeBadge({ mode, rules }: { mode: GameMode; rules: RoundRules }
       <span
         className={`label rounded-full px-3 py-1 ${hollywood ? 'bg-near text-navy-950' : 'border border-navy-500/70 text-navy-200'}`}
       >
-        {hollywood ? '🎬 Hollywood' : '🌍 Pistas'}
+        {hollywood ? '🎬 Hollywood' : '🌍 Es Cine'}
       </span>
       {tier && (
         <span className="text-xs text-navy-300 sm:text-sm">

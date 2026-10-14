@@ -55,20 +55,15 @@ function ModeCard({
   );
 }
 
-/** Barra de niveles del modo con el nivel actual (el detalle de cada nivel está en la ayuda). */
+/** Barra de niveles del modo (el detalle de cada nivel está en la ayuda). */
 function TierProgress({ tiers, xp }: { tiers: DifficultyTier[]; xp: number }) {
   const tier = tierFor(tiers, xp);
   return (
-    <>
-      <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
-        {tiers.map((t) => (
-          <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
-        ))}
-      </span>
-      <span className="mt-2 block text-xs">
-        Nivel <b className="text-white">{tier.rank}</b>
-      </span>
-    </>
+    <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
+      {tiers.map((t) => (
+        <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
+      ))}
+    </span>
   );
 }
 
@@ -101,7 +96,7 @@ export function Home({
           <TierProgress tiers={HOLLYWOOD_TIERS} xp={profile.xp} />
         </ModeCard>
 
-        <ModeCard title="Pistas" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
+        <ModeCard title="Es Cine" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
           Cine de todo el mundo. Cada rango trae más idiomas y épocas, y{' '}
           <b className="text-red-300">fallar resta XP</b> (un poco menos que en Hollywood).
           <TierProgress tiers={WORLD_TIERS} xp={profile.xp} />

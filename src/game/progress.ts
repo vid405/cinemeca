@@ -14,7 +14,7 @@ export interface PlayedMovie {
   attempts: number;
   hintsUsed: number;
   xp: number;
-  /** Modo en que se jugó (las partidas antiguas no lo tienen: eran del modo Pistas). */
+  /** Modo en que se jugó (las partidas antiguas no lo tienen: eran del modo Es Cine). */
   mode?: GameModeId;
   /** Fecha ISO de cuándo terminó la partida. */
   playedAt: string;

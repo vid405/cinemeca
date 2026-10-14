@@ -6,7 +6,7 @@ import { buildHint, hintOptions, pickHintOptions } from '../game/hints';
 import type { GameMode } from '../game/modes';
 import { computeXp } from '../game/xp';
 
-/** Piezas comunes a los modos que comparan atributos (Pistas y Hollywood). */
+/** Piezas comunes a los modos que comparan atributos (Es Cine y Hollywood). */
 export const cardModeBase = {
   resolveGuess: getMovieDetails,
   evaluateGuess: compareMovies,
@@ -18,7 +18,7 @@ export const cardModeBase = {
 
 export const cluesMode: GameMode<GuessResult> = {
   id: 'clues',
-  name: 'Pistas',
+  name: 'Es Cine',
   description: 'Cine de todo el mundo. Se vuelve más difícil al subir de rango y fallar resta XP.',
   rules: (xp) => rulesFor(tierFor(WORLD_TIERS, xp)),
   prepareRound: ({ excludeIds, rules }) =>

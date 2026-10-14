@@ -45,7 +45,7 @@ export const HOLLYWOOD_TIERS: HollywoodTier[] = [
 ];
 
 /**
- * Pistas (cine mundial). El cine no anglófono tiene muchos menos votos en TMDB
+ * Es Cine (cine mundial). El cine no anglófono tiene muchos menos votos en TMDB
  * (p. ej. solo ~17 películas en español superan 2.000), así que lleva su propio
  * umbral y se abre a más idiomas en cada nivel. Castiga algo menos que Hollywood
  * porque adivinar cine de todo el mundo ya es más difícil.

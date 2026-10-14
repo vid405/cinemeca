@@ -63,7 +63,7 @@ function PlayedDetail({ movie, onClose }: { movie: PlayedMovie; onClose: () => v
         <div className="min-w-0 space-y-1.5 text-sm">
           {movie.originalTitle !== movie.title && <p className="text-navy-300">{movie.originalTitle}</p>}
           <p className="text-navy-300">
-            {movie.year ?? 's/f'} · {movie.mode === 'hollywood' ? '🎬 Hollywood' : '🌍 Pistas'}
+            {movie.year ?? 's/f'} · {movie.mode === 'hollywood' ? '🎬 Hollywood' : '🌍 Es Cine'}
           </p>
           <p className={`font-bold ${movie.won ? 'text-hit' : 'text-navy-200'}`}>{resultText(movie)}</p>
           <p className="text-navy-200">

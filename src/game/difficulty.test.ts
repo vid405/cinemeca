@@ -17,7 +17,7 @@ const input = { maxAttempts: 10, hintsUsed: 0, gaveUp: false };
 
 const MODES: [string, (HollywoodTier | WorldTier)[]][] = [
   ['Hollywood', HOLLYWOOD_TIERS],
-  ['Pistas', WORLD_TIERS],
+  ['Es Cine', WORLD_TIERS],
 ];
 
 describe.each(MODES)('niveles de %s', (_, tiers) => {
@@ -53,7 +53,7 @@ describe.each(MODES)('niveles de %s', (_, tiers) => {
   });
 });
 
-describe('niveles de Pistas (cine mundial)', () => {
+describe('niveles de Es Cine (cine mundial)', () => {
   it('el cine extranjero tiene su propio umbral, más bajo', () => {
     for (const t of WORLD_TIERS) expect(t.foreignMinVotes).toBeLessThanOrEqual(t.minVotes);
   });

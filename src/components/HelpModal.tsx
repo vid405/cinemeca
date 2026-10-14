@@ -50,7 +50,7 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
         <p>Solo grandes películas de EE. UU. en inglés.</p>
         <TierTable tiers={HOLLYWOOD_TIERS} describe={(t) => `Desde ${t.fromYear}, ≥${fmtVotes(t.minVotes)} votos`} />
 
-        <h3 className="pt-1 font-bold text-white">🌍 Pistas</h3>
+        <h3 className="pt-1 font-bold text-white">🌍 Es Cine</h3>
         <p>Cine de todo el mundo; cada nivel suma idiomas y épocas, y el cine no anglófono puede ser menos conocido.</p>
         <TierTable
           tiers={WORLD_TIERS}

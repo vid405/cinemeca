@@ -46,7 +46,7 @@ export default function App() {
 
   const menu: MenuAction[] = [
     { label: 'Inicio', icon: <Icon.home className="h-5 w-5" />, onClick: () => setView('home') },
-    { label: 'Jugar · Pistas', icon: <Icon.play className="h-5 w-5" />, onClick: () => play('clues') },
+    { label: 'Jugar · Es Cine', icon: <Icon.play className="h-5 w-5" />, onClick: () => play('clues') },
     { label: 'Jugar · Hollywood', icon: <Icon.clapper className="h-5 w-5" />, onClick: () => play('hollywood') },
     ...(started.includes(activeMode)
       ? [

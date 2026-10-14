@@ -4,7 +4,7 @@ import type { RoundRules } from '../game/difficulty';
 import type { Hint, HintKind, HintOption } from '../game/hints';
 import { attemptsToNextHint, unlockedHints, type EvaluatedGuess, type GameMode } from '../game/modes';
 import type { MovieData } from '../game/types';
-import { playedIds } from '../game/progress';
+import { modeKey, playedIds } from '../game/progress';
 import { profileStore } from '../store/profileStore';
 
 export type GameStatus = 'loading' | 'playing' | 'won' | 'lost' | 'error';
@@ -80,7 +80,8 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     return ids;
   }, []);
 
-  const currentRules = useCallback(() => mode.rules(profileStore.getSnapshot().xp), [mode]);
+  // Cada modo tiene su propio XP, rango y nivel de dificultad.
+  const currentRules = useCallback(() => mode.rules(profileStore.getSnapshot().modeXp[modeKey(mode.id)]), [mode]);
 
   /**
    * Prepara la siguiente película en segundo plano para que "Siguiente" sea instantáneo.

@@ -41,10 +41,15 @@ export function mergeProfiles(local: Profile, incoming: Profile): MergeResult {
   const b = legacyPart(incoming);
   const historyIds = new Set(byId.keys());
 
+  // El XP anterior al historial no tiene modo: es de Es Cine, el único modo de entonces.
+  const legacyXp = Math.max(a.xp, b.xp);
+  const modeXp = { ...merged.modeXp, clues: merged.modeXp.clues + legacyXp };
+
   return {
     profile: {
       ...merged,
-      xp: merged.xp + Math.max(a.xp, b.xp),
+      modeXp,
+      xp: modeXp.clues + modeXp.hollywood,
       gamesPlayed: merged.gamesPlayed + Math.max(a.gamesPlayed, b.gamesPlayed),
       wins: merged.wins + Math.max(a.wins, b.wins),
       totalWinAttempts: merged.totalWinAttempts + Math.max(a.totalWinAttempts, b.totalWinAttempts),

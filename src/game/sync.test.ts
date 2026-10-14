@@ -71,3 +71,13 @@ describe('código de transferencia', () => {
     await expect(decodeProfile(code.slice(0, code.length - 15))).rejects.toBeInstanceOf(TransferCodeError);
   });
 });
+
+describe('sincronización con XP por modo', () => {
+  it('fusiona el XP de cada modo por separado', () => {
+    const pc = profileOf([{ ...game(1, true, 1), mode: 'hollywood' }]);
+    const phone = profileOf([{ ...game(2, true, 2), mode: 'clues' }, { ...game(3, false, 3), mode: 'hollywood', xp: -15 }]);
+    const { profile } = mergeProfiles(pc, phone);
+    expect(profile.modeXp).toEqual({ hollywood: 160 - 15, clues: 160 });
+    expect(profile.xp).toBe(profile.modeXp.hollywood + profile.modeXp.clues);
+  });
+});

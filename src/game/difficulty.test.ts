@@ -96,8 +96,10 @@ describe('XP por nivel', () => {
       movieId: 1, title: 'X', originalTitle: 'X', year: 2000, posterPath: null, won: false, gaveUp: true,
       attempts: 1, hintsUsed: 0, xp: -65, mode: 'hollywood', playedAt: '2026-10-13T10:00:00.000Z',
     };
-    const p = applyRound({ ...createEmptyProfile(), xp: 20 }, loss);
-    expect(p.xp).toBe(0);
+    const start = { ...createEmptyProfile(), xp: 120, modeXp: { clues: 100, hollywood: 20 } };
+    const p = applyRound(start, loss);
+    expect(p.modeXp).toEqual({ clues: 100, hollywood: 0 }); // solo baja el modo jugado, sin pasar de 0
+    expect(p.xp).toBe(100);
     expect(p.history[0].xp).toBe(-65);
   });
 });

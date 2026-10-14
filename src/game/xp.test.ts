@@ -218,3 +218,40 @@ describe('hints', () => {
     expect(await buildHint('keywords', movie({ keywords: [] }), [], noDeps)).toBeNull();
   });
 });
+
+describe('XP por modo', () => {
+  const game = (movieId: number, mode: 'clues' | 'hollywood' | undefined, xp: number, day: number): RoundRecord => ({
+    ...round(movieId, xp > 0, 4, xp),
+    mode,
+    playedAt: `2026-10-${String(day).padStart(2, '0')}T20:00:00.000Z`,
+  });
+
+  it('cada modo acumula su propio XP; el total es la suma', () => {
+    let p = createEmptyProfile();
+    p = applyRound(p, game(1, 'hollywood', 160, 1));
+    p = applyRound(p, game(2, 'clues', 100, 2));
+    p = applyRound(p, game(3, 'hollywood', -15, 3));
+    expect(p.modeXp).toEqual({ hollywood: 145, clues: 100 });
+    expect(p.xp).toBe(245);
+  });
+
+  it('las partidas sin modo (antiguas) cuentan para Es Cine', () => {
+    expect(applyRound(createEmptyProfile(), game(1, undefined, 50, 1)).modeXp).toEqual({ clues: 50, hollywood: 0 });
+  });
+
+  it('migra perfiles con XP único: reparte por historial y lo antiguo va a Es Cine', () => {
+    const old = {
+      xp: 400,
+      history: [game(1, 'hollywood', 160, 1), game(2, 'hollywood', -25, 2), game(3, 'clues', 115, 3)],
+    };
+    const p = normalizeProfile(old);
+    expect(p.modeXp).toEqual({ hollywood: 135, clues: 115 + 150 }); // 400 − 250 del historial = 150 antiguos
+    expect(p.xp).toBe(400);
+  });
+
+  it('respeta el XP por modo ya guardado', () => {
+    const p = normalizeProfile({ xp: 999, modeXp: { clues: 30, hollywood: 70 }, history: [] });
+    expect(p.modeXp).toEqual({ clues: 30, hollywood: 70 });
+    expect(p.xp).toBe(100);
+  });
+});

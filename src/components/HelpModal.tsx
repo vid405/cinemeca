@@ -41,9 +41,10 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
         </ul>
 
         <p>
-          Acertar da {XP_RULES.winBase} XP + {XP_RULES.perUnusedAttempt} por cada intento que sobre, más el bonus de tu nivel.{" "}
-          <b className="text-red-300">Fallar o rendirse resta XP</b> y puedes bajar de rango (el total nunca baja de 0). Cada rango que
-          alcanzas hace ambos modos más difíciles:
+          Cada modo tiene su propio XP y su propio rango. Acertar da {XP_RULES.winBase} XP + {XP_RULES.perUnusedAttempt} por cada
+          intento que sobre, más el bonus de tu nivel en ese modo.{' '}
+          <b className="text-red-300">Fallar o rendirse resta XP</b> y puedes bajar de rango (nunca por debajo de 0). Cada rango que
+          alcanzas en un modo lo hace más difícil:
         </p>
 
         <h3 className="pt-1 font-bold text-white">🎬 Hollywood</h3>

@@ -55,15 +55,35 @@ function ModeCard({
   );
 }
 
-/** Barra de niveles del modo (el detalle de cada nivel está en la ayuda). */
+/**
+ * Progreso del modo: barra de niveles y, debajo, el nivel actual con la barra de XP
+ * hasta el siguiente (el detalle de cada nivel está en la ayuda).
+ */
 function TierProgress({ tiers, xp }: { tiers: DifficultyTier[]; xp: number }) {
   const tier = tierFor(tiers, xp);
+  const info = getRankInfo(xp);
   return (
-    <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
-      {tiers.map((t) => (
-        <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
-      ))}
-    </span>
+    <>
+      <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${tiers.length}`}>
+        {tiers.map((t) => (
+          <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
+        ))}
+      </span>
+      <span className="mt-3 flex items-baseline justify-between gap-2 text-xs">
+        <span>
+          Nivel <b className="text-near">{info.rank.name}</b>
+        </span>
+        <span className="tabular-nums">
+          {info.next ? `${info.xpForNext! - info.xpIntoRank} XP para ${info.next.name}` : `${xp} XP · nivel máximo`}
+        </span>
+      </span>
+      <span className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-navy-700">
+        <span
+          className="block h-full rounded-full bg-gradient-to-r from-near to-amber-300 transition-[width] duration-700"
+          style={{ width: `${Math.round(info.progress * 100)}%` }}
+        />
+      </span>
+    </>
   );
 }
 
@@ -78,7 +98,6 @@ export function Home({
 }) {
   const profile = useProfile();
   const stats = getStats(profile);
-  const info = getRankInfo(profile.xp);
 
   return (
     <div className="animate-fade-up space-y-6 py-4 sm:space-y-8 sm:py-10">
@@ -92,12 +111,12 @@ export function Home({
       <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
         <ModeCard title="Hollywood" emoji="🎬" accent continuing={inProgress.includes('hollywood')} onClick={() => onPlay('hollywood')}>
           Los grandes éxitos.
-          <TierProgress tiers={HOLLYWOOD_TIERS} xp={profile.xp} />
+          <TierProgress tiers={HOLLYWOOD_TIERS} xp={profile.modeXp.hollywood} />
         </ModeCard>
 
         <ModeCard title="Es Cine" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
-          Cine de todo el mundo
-          <TierProgress tiers={WORLD_TIERS} xp={profile.xp} />
+          Cine de todo el mundo.
+          <TierProgress tiers={WORLD_TIERS} xp={profile.modeXp.clues} />
         </ModeCard>
       </div>
 
@@ -125,9 +144,9 @@ export function Home({
 
       <div className="grid grid-cols-3 gap-2 text-center sm:gap-3">
         {[
-          [info.rank.name, `${profile.xp} XP`],
-          [`${stats.winRate}%`, `${stats.gamesPlayed} jugadas`],
-          [`🔥 ${stats.currentStreak}`, `mejor: ${stats.bestStreak}`],
+          [`${stats.gamesPlayed}`, 'jugadas'],
+          [`${stats.winRate}%`, 'aciertos'],
+          [`🔥 ${stats.currentStreak}`, `mejor racha: ${stats.bestStreak}`],
         ].map(([a, b]) => (
           <div key={b} className="rounded-xl border border-navy-600/60 bg-navy-850/70 px-2 py-3">
             <div className="truncate text-[15px] font-extrabold text-white sm:text-xl">{a}</div>

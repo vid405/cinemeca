@@ -13,10 +13,41 @@ function Stat({ value, label }: { value: string | number; label: string }) {
   );
 }
 
+/** Rango y XP de un modo (cada modo sube de nivel por separado). */
+function ModeRank({ title, xp }: { title: string; xp: number }) {
+  const info = getRankInfo(xp);
+  return (
+    <div className="rounded-xl border border-near/25 bg-near/[0.06] p-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm font-bold text-white">{title}</span>
+        <span className="text-sm tabular-nums text-navy-200">{xp} XP</span>
+      </div>
+      <div className="mt-1 flex items-baseline justify-between gap-2 text-xs">
+        <span className="font-extrabold text-near">{info.rank.name}</span>
+        <span className="text-navy-300">
+          {info.next ? `${info.xpForNext! - info.xpIntoRank} XP para ${info.next.name}` : 'Rango máximo alcanzado'}
+        </span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-navy-700">
+        <div className="h-full rounded-full bg-near" style={{ width: `${Math.round(info.progress * 100)}%` }} />
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {RANKS.map((r, i) => (
+          <span
+            key={r.name}
+            className={`rounded px-1.5 py-0.5 text-[10px] ${i <= info.index ? 'bg-near/20 text-amber-200' : 'bg-navy-700 text-navy-400'}`}
+          >
+            {r.name} · {r.minXp}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StatsModal({ onClose, onSync }: { onClose: () => void; onSync: () => void }) {
   const profile = useProfile();
   const stats = getStats(profile);
-  const info = getRankInfo(profile.xp);
   const maxDist = Math.max(1, ...profile.distribution);
 
   const reset = () => {
@@ -25,27 +56,9 @@ export function StatsModal({ onClose, onSync }: { onClose: () => void; onSync: (
 
   return (
     <Modal title="Perfil y estadísticas" onClose={onClose}>
-      <div className="mb-4 rounded-xl border border-near/25 bg-near/[0.06] p-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-lg font-extrabold text-near">{info.rank.name}</span>
-          <span className="text-sm tabular-nums text-navy-200">{profile.xp} XP</span>
-        </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-navy-700">
-          <div className="h-full rounded-full bg-near" style={{ width: `${Math.round(info.progress * 100)}%` }} />
-        </div>
-        <p className="mt-1.5 text-xs text-navy-300">
-          {info.next ? `${info.next.minXp - profile.xp} XP para ${info.next.name}` : 'Rango máximo alcanzado'}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-1">
-          {RANKS.map((r, i) => (
-            <span
-              key={r.name}
-              className={`rounded px-1.5 py-0.5 text-[10px] ${i <= info.index ? 'bg-near/20 text-amber-200' : 'bg-navy-700 text-navy-400'}`}
-            >
-              {r.name} · {r.minXp}
-            </span>
-          ))}
-        </div>
+      <div className="mb-4 space-y-2">
+        <ModeRank title="🎬 Hollywood" xp={profile.modeXp.hollywood} />
+        <ModeRank title="🌍 Es Cine" xp={profile.modeXp.clues} />
       </div>
 
       <div className="grid grid-cols-3 gap-2">

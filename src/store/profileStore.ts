@@ -1,4 +1,4 @@
-import { applyRound, createEmptyProfile, type Profile, type RoundRecord } from '../game/progress';
+import { applyRound, createEmptyProfile, modeKey, type Profile, type RoundRecord } from '../game/progress';
 import { mergeProfiles, type MergeResult } from '../game/sync';
 import { getRankInfo } from '../game/xp';
 import { storage } from './storage';
@@ -34,10 +34,12 @@ export const profileStore = {
     listeners.forEach((l) => l());
   },
 
+  /** Registra una partida; el ascenso o descenso es del rango del modo jugado. */
   recordRound(round: RoundRecord): RecordOutcome {
-    const before = getRankInfo(profile.xp).index;
+    const key = modeKey(round.mode);
+    const before = getRankInfo(profile.modeXp[key]).index;
     const next = applyRound(profile, round);
-    const after = getRankInfo(next.xp);
+    const after = getRankInfo(next.modeXp[key]);
     set(next);
     return {
       profile: next,

@@ -2,6 +2,15 @@ import type { GameModeId } from './modes';
 
 export const DISTRIBUTION_SLOTS = 10;
 
+/** Modos con XP y rango propios. */
+export type ModeKey = 'clues' | 'hollywood';
+export const MODE_KEYS: ModeKey[] = ['hollywood', 'clues'];
+
+/** Las partidas sin modo son antiguas: entonces solo existía Es Cine. */
+export const modeKey = (mode?: GameModeId): ModeKey => (mode === 'hollywood' ? 'hollywood' : 'clues');
+
+const emptyModeXp = (): Record<ModeKey, number> => ({ clues: 0, hollywood: 0 });
+
 /** Una partida terminada, tal como se muestra en la Filmoteca. */
 export interface PlayedMovie {
   movieId: number;
@@ -22,7 +31,10 @@ export interface PlayedMovie {
 
 export interface Profile {
   version: 1;
+  /** XP total (suma de los modos). */
   xp: number;
+  /** XP de cada modo: cada uno tiene su propio rango y nivel de dificultad. */
+  modeXp: Record<ModeKey, number>;
   gamesPlayed: number;
   wins: number;
   currentStreak: number;
@@ -41,6 +53,7 @@ export function createEmptyProfile(): Profile {
   return {
     version: 1,
     xp: 0,
+    modeXp: emptyModeXp(),
     gamesPlayed: 0,
     wins: 0,
     currentStreak: 0,
@@ -61,10 +74,13 @@ export function applyRound(profile: Profile, round: RoundRecord): Profile {
     const slot = Math.min(round.attempts, DISTRIBUTION_SLOTS) - 1;
     distribution[slot] = (distribution[slot] ?? 0) + 1;
   }
+  // Fallar resta XP del modo jugado, pero el XP de un modo nunca baja de 0.
+  const key = modeKey(round.mode);
+  const modeXp = { ...profile.modeXp, [key]: Math.max(0, profile.modeXp[key] + round.xp) };
   return {
     ...profile,
-    // El modo Hollywood puede restar XP, pero el total nunca baja de 0.
-    xp: Math.max(0, profile.xp + round.xp),
+    modeXp,
+    xp: modeXp.clues + modeXp.hollywood,
     gamesPlayed: profile.gamesPlayed + 1,
     wins: profile.wins + (round.won ? 1 : 0),
     currentStreak,
@@ -73,6 +89,16 @@ export function applyRound(profile: Profile, round: RoundRecord): Profile {
     distribution,
     history: [round, ...profile.history.filter((h) => h.movieId !== round.movieId)],
   };
+}
+
+/** Reproduce el historial en orden para obtener el XP de cada modo (con el mínimo de 0). */
+export function modeXpFromHistory(history: PlayedMovie[]): Record<ModeKey, number> {
+  const xp = emptyModeXp();
+  for (const h of [...history].sort((a, b) => a.playedAt.localeCompare(b.playedAt))) {
+    const key = modeKey(h.mode);
+    xp[key] = Math.max(0, xp[key] + h.xp);
+  }
+  return xp;
 }
 
 /** Todas las películas que ya salieron: nunca se vuelven a elegir como secretas. */
@@ -105,5 +131,17 @@ export function normalizeProfile(raw: unknown): Profile {
   const inHistory = new Set(p.history.map((h) => h.movieId));
   p.legacyPlayedIds = [...new Set(legacy.filter((id): id is number => typeof id === 'number' && !inHistory.has(id)))];
   delete (p as { recentIds?: unknown }).recentIds;
+
+  // Antes el XP era uno solo: se reparte por modo según el historial, y lo que no
+  // está en el historial (partidas antiguas) va a Es Cine, el único modo de entonces.
+  const m = r.modeXp;
+  if (m && typeof m.clues === 'number' && typeof m.hollywood === 'number') {
+    p.modeXp = { clues: Math.max(0, m.clues), hollywood: Math.max(0, m.hollywood) };
+  } else {
+    const fromHistory = modeXpFromHistory(p.history);
+    const legacy = Math.max(0, (Number(r.xp) || 0) - fromHistory.clues - fromHistory.hollywood);
+    p.modeXp = { clues: fromHistory.clues + legacy, hollywood: fromHistory.hollywood };
+  }
+  p.xp = p.modeXp.clues + p.modeXp.hollywood;
   return p;
 }

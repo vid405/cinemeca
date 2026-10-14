@@ -18,6 +18,8 @@ export interface RecordOutcome {
   profile: Profile;
   /** Nombre del nuevo rango si la partida provocó un ascenso. */
   rankUp: string | null;
+  /** Nombre del nuevo rango si se bajó de rango (el modo Hollywood resta XP). */
+  rankDown: string | null;
 }
 
 export const profileStore = {
@@ -37,7 +39,11 @@ export const profileStore = {
     const next = applyRound(profile, round);
     const after = getRankInfo(next.xp);
     set(next);
-    return { profile: next, rankUp: after.index > before ? after.rank.name : null };
+    return {
+      profile: next,
+      rankUp: after.index > before ? after.rank.name : null,
+      rankDown: after.index < before ? after.rank.name : null,
+    };
   },
 
   /** Combina el progreso traído de otro dispositivo con el local. */

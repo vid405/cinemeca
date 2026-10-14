@@ -9,38 +9,58 @@ import { HintModal } from './components/HintModal';
 import { Home } from './components/Home';
 import { Library } from './components/Library';
 import { MenuDrawer, type MenuAction } from './components/MenuDrawer';
+import { ModeBadge } from './components/ModeBadge';
 import { ResultPanel } from './components/ResultPanel';
 import { SearchBox } from './components/SearchBox';
 import { EmptyGuesses, ErrorState, GameSkeleton, MissingToken } from './components/States';
 import { StatsModal } from './components/StatsModal';
 import { SyncModal } from './components/SyncModal';
 import { Icon } from './components/ui';
+import type { GuessResult } from './game/compare';
+import type { GameMode } from './game/modes';
 import { useGame } from './hooks/useGame';
-import { cluesMode } from './modes';
+import { cluesMode, hollywoodMode } from './modes';
 
 type ModalId = 'stats' | 'help' | 'menu' | 'sync' | null;
 type View = 'home' | 'play' | 'library';
+type PlayableMode = 'clues' | 'hollywood';
+
+const PLAYABLE: Record<PlayableMode, GameMode<GuessResult>> = { clues: cluesMode, hollywood: hollywoodMode };
 
 export default function App() {
   const [modal, setModal] = useState<ModalId>(null);
-  const [view, setView] = useState<View>('play');
-  const newGameRef = useRef<() => void>(() => {});
+  // La app abre siempre en Inicio; la partida empieza al elegir un modo.
+  const [view, setView] = useState<View>('home');
+  const [activeMode, setActiveMode] = useState<PlayableMode>('clues');
+  // Modos ya abiertos: siguen montados (ocultos) para no perder la partida en curso.
+  const [started, setStarted] = useState<PlayableMode[]>([]);
+  const newGameRefs = useRef<Partial<Record<PlayableMode, () => void>>>({});
   const close = useCallback(() => setModal(null), []);
   const configured = isConfigured();
-  const play = () => setView('play');
+
+  const play = (mode: PlayableMode = activeMode) => {
+    setActiveMode(mode);
+    setStarted((s) => (s.includes(mode) ? s : [...s, mode]));
+    setView('play');
+  };
 
   const menu: MenuAction[] = [
     { label: 'Inicio', icon: <Icon.home className="h-5 w-5" />, onClick: () => setView('home') },
-    { label: 'Jugar', icon: <Icon.play className="h-5 w-5" />, onClick: play },
-    {
-      label: 'Nueva película',
-      icon: <Icon.search className="h-5 w-5" />,
-      onClick: () => {
-        play();
-        newGameRef.current();
-      },
-    },
-    { label: 'Filmoteca', icon: <Icon.clapper className="h-5 w-5" />, onClick: () => setView('library') },
+    { label: 'Jugar · Pistas', icon: <Icon.play className="h-5 w-5" />, onClick: () => play('clues') },
+    { label: 'Jugar · Hollywood', icon: <Icon.clapper className="h-5 w-5" />, onClick: () => play('hollywood') },
+    ...(started.includes(activeMode)
+      ? [
+          {
+            label: 'Nueva película',
+            icon: <Icon.search className="h-5 w-5" />,
+            onClick: () => {
+              play(activeMode);
+              newGameRefs.current[activeMode]?.();
+            },
+          },
+        ]
+      : []),
+    { label: 'Filmoteca', icon: <Icon.tag className="h-5 w-5" />, onClick: () => setView('library') },
     { label: 'Estadísticas', icon: <Icon.chart className="h-5 w-5" />, onClick: () => setModal('stats') },
     { label: 'Sincronizar', icon: <Icon.users className="h-5 w-5" />, onClick: () => setModal('sync') },
     { label: 'Cómo jugar', icon: <Icon.help className="h-5 w-5" />, onClick: () => setModal('help') },
@@ -59,12 +79,13 @@ export default function App() {
           <MissingToken />
         ) : (
           <>
-            {view === 'home' && <Home onPlay={play} onLibrary={() => setView('library')} />}
-            {view === 'library' && <Library onPlay={play} />}
-            {/* La partida sigue montada al ir a Inicio para no perder el progreso. */}
-            <div hidden={view !== 'play'}>
-              <CluesGame registerNewGame={(fn) => (newGameRef.current = fn)} />
-            </div>
+            {view === 'home' && <Home onPlay={play} inProgress={started} onLibrary={() => setView('library')} />}
+            {view === 'library' && <Library onPlay={() => play()} />}
+            {started.map((id) => (
+              <div key={id} hidden={view !== 'play' || activeMode !== id}>
+                <GameScreen mode={PLAYABLE[id]} registerNewGame={(fn) => (newGameRefs.current[id] = fn)} />
+              </div>
+            ))}
           </>
         )}
       </main>
@@ -72,15 +93,13 @@ export default function App() {
       {modal === 'menu' && <MenuDrawer actions={menu} onClose={close} />}
       {modal === 'stats' && <StatsModal onClose={close} onSync={() => setModal('sync')} />}
       {modal === 'sync' && <SyncModal onClose={close} />}
-      {modal === 'help' && (
-        <HelpModal onClose={close} maxAttempts={cluesMode.maxAttempts} hintSchedule={cluesMode.hintSchedule} />
-      )}
+      {modal === 'help' && <HelpModal onClose={close} />}
     </div>
   );
 }
 
-function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => void }) {
-  const game = useGame(cluesMode);
+function GameScreen({ mode, registerNewGame }: { mode: GameMode<GuessResult>; registerNewGame: (fn: () => void) => void }) {
+  const game = useGame(mode);
   // El selector de pistas solo se abre cuando el jugador pulsa "Pista".
   const [hintOpen, setHintOpen] = useState(false);
   const closeHints = useCallback(() => setHintOpen(false), []);
@@ -91,12 +110,15 @@ function CluesGame({ registerNewGame }: { registerNewGame: (fn: () => void) => v
     if (game.status !== 'playing') setHintOpen(false);
   }, [game.status]);
 
-  if (game.status === 'loading') return <GameSkeleton />;
+  const badge = <ModeBadge mode={mode} rules={game.rules} />;
+
+  if (game.status === 'loading') return <div className="space-y-3">{badge}<GameSkeleton /></div>;
   if (game.status === 'error') return <ErrorState message={game.error ?? ''} onRetry={game.newGame} />;
   if (!game.secret) return null;
 
   return (
     <div className="space-y-4">
+      {badge}
       {game.isOver && game.summary ? (
         <ResultPanel key={game.secret.id} movie={game.secret} summary={game.summary} onNext={game.newGame} />
       ) : (

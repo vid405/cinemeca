@@ -1,5 +1,6 @@
 import type { GameMode, GameModeId } from '../game/modes';
 import { cluesMode } from './cluesMode';
+import { hollywoodMode } from './hollywoodMode';
 
 /**
  * Registro de modos. Para añadir uno nuevo: implementar GameMode en este
@@ -8,6 +9,7 @@ import { cluesMode } from './cluesMode';
  */
 export const MODES: Partial<Record<GameModeId, GameMode>> = {
   clues: cluesMode,
+  hollywood: hollywoodMode,
 };
 
-export { cluesMode };
+export { cluesMode, hollywoodMode };

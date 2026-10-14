@@ -57,7 +57,11 @@ export function ResultPanel({ movie, summary, onNext }: { movie: MovieData; summ
       </div>
 
       <div className="flex flex-wrap items-center justify-center gap-2 px-4 text-sm">
-        <span className="rounded-full bg-near/15 px-3 py-1 font-bold text-near">+{summary.xp} XP</span>
+        {summary.xp >= 0 ? (
+          <span className="rounded-full bg-near/15 px-3 py-1 font-bold text-near">+{summary.xp} XP</span>
+        ) : (
+          <span className="rounded-full bg-red-500/15 px-3 py-1 font-bold text-red-300">−{Math.abs(summary.xp)} XP</span>
+        )}
         {summary.hintsUsed > 0 && (
           <span className="rounded-full bg-navy-700 px-3 py-1 text-navy-200">
             {summary.hintsUsed} {summary.hintsUsed === 1 ? 'pista' : 'pistas'}
@@ -65,6 +69,9 @@ export function ResultPanel({ movie, summary, onNext }: { movie: MovieData; summ
         )}
         {summary.rankUp && (
           <span className="rounded-full bg-hit/20 px-3 py-1 font-bold text-hit">⭐ ¡Nuevo rango: {summary.rankUp}!</span>
+        )}
+        {summary.rankDown && (
+          <span className="rounded-full bg-red-500/15 px-3 py-1 font-bold text-red-300">↓ Bajaste a {summary.rankDown}</span>
         )}
       </div>
 

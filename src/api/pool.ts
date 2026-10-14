@@ -1,3 +1,4 @@
+import type { HollywoodTier } from '../game/difficulty';
 import type { MovieData } from '../game/types';
 import { getMovieDetails, getMovieList, TmdbError, type TmdbListItem } from './tmdb';
 
@@ -36,16 +37,19 @@ function shuffle<T>(items: T[]): T[] {
   return a;
 }
 
-interface Source {
+export interface Source {
   path: string;
   params: Record<string, string | number | boolean>;
   maxPage: number;
+  /** Votos mínimos que debe tener cada candidata. */
+  minVotes: number;
 }
 
-function randomSource(): Source {
+/** Fuente del modo Pistas: mezcla mundial de popular, top_rated y discover. */
+export function worldSource(): Source {
   const r = Math.random();
-  if (r < 0.2) return { path: '/movie/popular', params: {}, maxPage: 40 };
-  if (r < 0.45) return { path: '/movie/top_rated', params: {}, maxPage: 80 };
+  if (r < 0.2) return { path: '/movie/popular', params: {}, maxPage: 40, minVotes: MIN_VOTES };
+  if (r < 0.45) return { path: '/movie/top_rated', params: {}, maxPage: 80, minVotes: MIN_VOTES };
 
   const params: Source['params'] = {
     include_adult: false,
@@ -58,7 +62,24 @@ function randomSource(): Source {
     params['primary_release_date.gte'] = `${from}-01-01`;
     params['primary_release_date.lte'] = `${to}-12-31`;
   }
-  return { path: '/discover/movie', params, maxPage: 20 };
+  return { path: '/discover/movie', params, maxPage: 20, minVotes: MIN_VOTES };
+}
+
+/** Fuente del modo Hollywood: cine de EE. UU. en inglés, acotado por el nivel. */
+export function hollywoodSource(tier: HollywoodTier): Source {
+  return {
+    path: '/discover/movie',
+    params: {
+      include_adult: false,
+      with_original_language: 'en',
+      with_origin_country: 'US',
+      'vote_count.gte': tier.minVotes,
+      'primary_release_date.gte': `${tier.fromYear}-01-01`,
+      sort_by: pick(SORTS),
+    },
+    maxPage: tier.pages,
+    minVotes: tier.minVotes,
+  };
 }
 
 async function fetchCandidates(source: Source): Promise<TmdbListItem[]> {
@@ -76,13 +97,18 @@ const isPlayable = (m: MovieData) =>
   m.year != null && !!m.runtime && m.directors.length > 0 && m.genres.length > 0 && m.cast.length > 0;
 
 /** `excludeIds` crece con cada partida (nunca se repite una jugada), así que hay margen de reintentos. */
-export async function pickSecretMovie(excludeIds: ReadonlySet<number>, maxTries = 10): Promise<MovieData> {
+export async function pickSecretMovie(
+  excludeIds: ReadonlySet<number>,
+  sourceFor: (attempt: number) => Source = worldSource,
+  maxTries = 10,
+): Promise<MovieData> {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < maxTries; attempt++) {
     try {
+      const source = sourceFor(attempt);
       const candidates = shuffle(
-        (await fetchCandidates(randomSource())).filter(
-          (m) => !m.adult && m.poster_path && m.vote_count >= MIN_VOTES && !excludeIds.has(m.id),
+        (await fetchCandidates(source)).filter(
+          (m) => !m.adult && m.poster_path && m.vote_count >= source.minVotes && !excludeIds.has(m.id),
         ),
       );
       for (const c of candidates.slice(0, 3)) {

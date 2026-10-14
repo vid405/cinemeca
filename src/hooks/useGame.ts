@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { imageUrl } from '../api/tmdb';
+import type { RoundRules } from '../game/difficulty';
 import type { Hint, HintKind, HintOption } from '../game/hints';
 import { attemptsToNextHint, unlockedHints, type EvaluatedGuess, type GameMode } from '../game/modes';
 import type { MovieData } from '../game/types';
@@ -15,10 +16,13 @@ export interface RoundSummary {
   hintsUsed: number;
   xp: number;
   rankUp: string | null;
+  rankDown: string | null;
 }
 
 export interface GameState<R extends EvaluatedGuess> {
   status: GameStatus;
+  /** Reglas fijadas al empezar la partida (dependen del nivel en algunos modos). */
+  rules: RoundRules;
   secret: MovieData | null;
   /** El intento más reciente primero. */
   guesses: R[];
@@ -34,8 +38,9 @@ export interface GameState<R extends EvaluatedGuess> {
   summary: RoundSummary | null;
 }
 
-const initialState = <R extends EvaluatedGuess>(): GameState<R> => ({
+const initialState = <R extends EvaluatedGuess>(rules: RoundRules = { maxAttempts: 10, hintSchedule: [] }): GameState<R> => ({
   status: 'loading',
+  rules,
   secret: null,
   guesses: [],
   hintOptions: [],
@@ -60,7 +65,8 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
   // Fuente de verdad síncrona para acciones asíncronas (evita closures obsoletos).
   const stateRef = useRef(state);
   const roundId = useRef(0);
-  const prefetched = useRef<Promise<MovieData | null> | null>(null);
+  /** Siguiente película precargada, con la clave de las reglas para las que se eligió. */
+  const prefetched = useRef<{ secret: Promise<MovieData | null>; rulesKey: string } | null>(null);
 
   const commit = useCallback((next: GameState<R>) => {
     stateRef.current = next;
@@ -74,48 +80,60 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
     return ids;
   }, []);
 
-  /** Prepara la siguiente película en segundo plano para que "Siguiente" sea instantáneo. */
+  const currentRules = useCallback(() => mode.rules(profileStore.getSnapshot().xp), [mode]);
+
+  /**
+   * Prepara la siguiente película en segundo plano para que "Siguiente" sea instantáneo.
+   * Se precarga con las reglas que tendría la próxima partida si esta se perdiera; si el
+   * resultado cambia de nivel, newGame la descarta y elige otra.
+   */
   const prefetchNext = useCallback(
     (currentId: number) => {
       const ids = excludeIds();
       ids.add(currentId);
-      prefetched.current = mode
-        .prepareRound({ excludeIds: ids })
-        .then((m) => (preloadImage(m.posterPath), m))
-        .catch(() => null);
+      const rules = currentRules();
+      prefetched.current = {
+        rulesKey: JSON.stringify(rules),
+        secret: mode
+          .prepareRound({ excludeIds: ids, rules })
+          .then((m) => (preloadImage(m.posterPath), m))
+          .catch(() => null),
+      };
     },
-    [mode, excludeIds],
+    [mode, excludeIds, currentRules],
   );
 
   const newGame = useCallback(async () => {
     const id = ++roundId.current;
     // La anterior aún no está en el historial si se abandonó con "Nueva película".
     const previousId = stateRef.current.secret?.id;
-    commit({ ...initialState<R>(), status: 'loading' });
+    const rules = currentRules();
+    commit({ ...initialState<R>(rules), status: 'loading' });
     try {
       const exclude = excludeIds();
       if (previousId) exclude.add(previousId);
       const pending = prefetched.current;
       prefetched.current = null;
-      let secret = pending ? await pending : null;
-      if (!secret || exclude.has(secret.id)) secret = await mode.prepareRound({ excludeIds: exclude });
+      let secret = pending && pending.rulesKey === JSON.stringify(rules) ? await pending.secret : null;
+      if (!secret || exclude.has(secret.id)) secret = await mode.prepareRound({ excludeIds: exclude, rules });
       if (id !== roundId.current) return;
-      commit({ ...initialState<R>(), status: 'playing', secret, hintOptions: mode.getHintOptions(secret) });
+      commit({ ...initialState<R>(rules), status: 'playing', secret, hintOptions: mode.getHintOptions(secret) });
       prefetchNext(secret.id);
     } catch (err) {
       if (id !== roundId.current) return;
-      commit({ ...initialState<R>(), status: 'error', error: messageOf(err) });
+      commit({ ...initialState<R>(rules), status: 'error', error: messageOf(err) });
     }
-  }, [mode, commit, excludeIds, prefetchNext]);
+  }, [mode, commit, excludeIds, prefetchNext, currentRules]);
 
   const finish = useCallback(
     (s: GameState<R>, won: boolean, gaveUp: boolean): GameState<R> => {
       const attempts = s.guesses.length;
       const hintsUsed = s.hints.length;
-      const xp = mode.score({ won, gaveUp, attempts, maxAttempts: mode.maxAttempts, hintsUsed });
+      const xp = mode.score({ won, gaveUp, attempts, maxAttempts: s.rules.maxAttempts, hintsUsed }, s.rules);
       const m = s.secret!;
-      const { rankUp } = profileStore.recordRound({
+      const { rankUp, rankDown } = profileStore.recordRound({
         movieId: m.id,
+        mode: mode.id,
         title: m.title,
         originalTitle: m.originalTitle,
         year: m.year,
@@ -131,7 +149,7 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
         ...s,
         status: won ? 'won' : 'lost',
         submitting: false,
-        summary: { won, gaveUp, attempts, hintsUsed, xp, rankUp },
+        summary: { won, gaveUp, attempts, hintsUsed, xp, rankUp, rankDown },
       };
     },
     [mode],
@@ -154,7 +172,7 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
         const result = mode.evaluateGuess(guess, cur.secret!);
         let next: GameState<R> = { ...cur, guesses: [result, ...cur.guesses], submitting: false };
         if (result.isCorrect) next = finish(next, true, false);
-        else if (next.guesses.length >= mode.maxAttempts) next = finish(next, false, false);
+        else if (next.guesses.length >= next.rules.maxAttempts) next = finish(next, false, false);
         commit(next);
       } catch (err) {
         if (id !== roundId.current) return;
@@ -170,7 +188,7 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
       const s = stateRef.current;
       if (s.status !== 'playing' || !s.secret || s.hintLoading) return false;
       const available = s.hintOptions.filter((o) => o.available).length;
-      if (s.hints.length >= unlockedHints(mode.hintSchedule, s.guesses.length, available)) return false;
+      if (s.hints.length >= unlockedHints(s.rules.hintSchedule, s.guesses.length, available)) return false;
       if (s.hints.some((h) => h.kind === kind)) return false;
 
       const id = roundId.current;
@@ -220,17 +238,18 @@ export function useGame<R extends EvaluatedGuess>(mode: GameMode<R>) {
 
   const attempts = state.guesses.length;
   const availableHints = state.hintOptions.filter((o) => o.available).length;
-  const hintsUnlocked = unlockedHints(mode.hintSchedule, attempts, availableHints);
+  const { rules } = state;
+  const hintsUnlocked = unlockedHints(rules.hintSchedule, attempts, availableHints);
   return {
     ...state,
-    maxAttempts: mode.maxAttempts,
+    maxAttempts: rules.maxAttempts,
     isOver: state.status === 'won' || state.status === 'lost',
     hintsUsed: state.hints.length,
     hintsTotal: availableHints,
     hintsUnlocked,
     /** Usos de pista disponibles ahora mismo. */
     hintsRemaining: Math.max(0, hintsUnlocked - state.hints.length),
-    nextHintIn: attemptsToNextHint(mode.hintSchedule, attempts, availableHints),
+    nextHintIn: attemptsToNextHint(rules.hintSchedule, attempts, availableHints),
     newGame,
     submitGuess,
     revealHint,

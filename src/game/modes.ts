@@ -1,3 +1,4 @@
+import type { RoundRules } from './difficulty';
 import type { Hint, HintKind, HintOption } from './hints';
 import type { MovieData } from './types';
 import type { ScoreInput } from './xp';
@@ -7,7 +8,7 @@ import type { ScoreInput } from './xp';
  * interfaz, así que un modo nuevo (frame borroso, emojis, contrarreloj…) se añade
  * implementándola y registrándolo en src/modes/index.ts.
  */
-export type GameModeId = 'clues' | 'blurred-frame' | 'emoji' | 'time-attack';
+export type GameModeId = 'clues' | 'hollywood' | 'blurred-frame' | 'emoji' | 'time-attack';
 
 export interface EvaluatedGuess {
   movie: MovieData;
@@ -15,17 +16,17 @@ export interface EvaluatedGuess {
 }
 
 export interface RoundContext {
-  /** Películas que no deben salir (últimas jugadas). */
+  /** Películas que no deben salir (ya jugadas). */
   excludeIds: ReadonlySet<number>;
+  rules: RoundRules;
 }
 
 export interface GameMode<TResult extends EvaluatedGuess = EvaluatedGuess, TSecret extends MovieData = MovieData> {
   id: GameModeId;
   name: string;
   description: string;
-  maxAttempts: number;
-  /** hintSchedule[i] = intentos necesarios para desbloquear la pista i. */
-  hintSchedule: number[];
+  /** Reglas de la partida según el XP del jugador (los modos fijos ignoran el XP). */
+  rules(xp: number): RoundRules;
   /** Para modos contrarreloj (aún no usado por la UI). */
   timeLimitMs?: number;
   /** Elige la película secreta (y cualquier material extra: frames, emojis…). */
@@ -37,7 +38,8 @@ export interface GameMode<TResult extends EvaluatedGuess = EvaluatedGuess, TSecr
   getHintOptions(secret: TSecret): HintOption[];
   /** Calcula una pista en el momento de pedirla (puede depender de los intentos y pedir datos). */
   buildHint(kind: HintKind, secret: TSecret, guesses: MovieData[], previous: Hint[]): Promise<Hint | null>;
-  score(input: ScoreInput): number;
+  /** XP de la partida; puede ser negativo (el modo Hollywood castiga perder). */
+  score(input: ScoreInput, rules: RoundRules): number;
 }
 
 /** Cuántas pistas están desbloqueadas tras `attempts` intentos. */

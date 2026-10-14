@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
+import { HOLLYWOOD_TIERS, hollywoodTier } from '../game/difficulty';
 import { getStats } from '../game/progress';
-import { getRankInfo } from '../game/xp';
+import { getRankInfo, RANKS } from '../game/xp';
 import { useProfile } from '../hooks/useProfile';
 import { Icon, Poster } from './ui';
 
@@ -9,34 +11,99 @@ const UPCOMING = [
   { name: 'Contrarreloj', desc: 'Todas las que puedas antes de que acabe el tiempo.', emoji: '⏱️' },
 ];
 
-export function Home({ onPlay, onLibrary }: { onPlay: () => void; onLibrary: () => void }) {
+type PlayableMode = 'clues' | 'hollywood';
+
+function ModeCard({
+  title,
+  emoji,
+  accent,
+  continuing,
+  onClick,
+  children,
+}: {
+  title: string;
+  emoji: string;
+  accent: boolean;
+  continuing: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group flex w-full flex-col rounded-2xl border bg-navy-850/90 p-5 text-left shadow-xl shadow-black/30 transition sm:p-6 ${
+        accent ? 'border-near/60 hover:border-near' : 'border-navy-500/70 hover:border-navy-300'
+      }`}
+    >
+      <span className="flex items-center gap-3">
+        <span
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-navy-950 transition group-hover:scale-105 ${
+            accent ? 'bg-near' : 'bg-navy-200'
+          }`}
+        >
+          <Icon.play className="h-5 w-5 fill-current" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-xl font-bold sm:text-2xl">
+            {emoji} {title}
+          </span>
+          <span className="label text-navy-300">{continuing ? 'Continuar partida' : 'Jugar'}</span>
+        </span>
+      </span>
+      <span className="mt-3 block text-sm leading-relaxed text-navy-300">{children}</span>
+    </button>
+  );
+}
+
+export function Home({
+  onPlay,
+  inProgress,
+  onLibrary,
+}: {
+  onPlay: (mode: PlayableMode) => void;
+  inProgress: PlayableMode[];
+  onLibrary: () => void;
+}) {
   const profile = useProfile();
   const stats = getStats(profile);
   const info = getRankInfo(profile.xp);
+  const tier = hollywoodTier(profile.xp);
+  const nextTier = HOLLYWOOD_TIERS[tier.level + 1];
 
   return (
-    <div className="animate-fade-up space-y-8 py-4 sm:py-10">
+    <div className="animate-fade-up space-y-6 py-4 sm:space-y-8 sm:py-10">
       <div className="text-center">
         <h1 className="text-5xl font-extrabold tracking-tight sm:text-7xl">
           <span className="text-near">Cine</span>Meca
         </h1>
-        <p className="mt-3 text-navy-300 sm:text-lg">Adivina películas de todo el mundo. Sin límite diario.</p>
+        <p className="mt-3 text-navy-300 sm:text-lg">Adivina películas sin límite diario.</p>
       </div>
 
-      <button
-        onClick={onPlay}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-near/50 bg-navy-850/90 p-5 text-left shadow-xl shadow-black/30 transition hover:border-near sm:p-7"
-      >
-        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-near text-navy-950 transition group-hover:scale-105 sm:h-16 sm:w-16">
-          <Icon.play className="h-6 w-6 fill-current sm:h-7 sm:w-7" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xl font-bold sm:text-2xl">Jugar · Modo Pistas</span>
-          <span className="block text-sm text-navy-300 sm:text-base">
-            10 intentos. Año, taquilla, estudio, clasificación, puntuación, géneros y reparto.
+      <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
+        <ModeCard title="Hollywood" emoji="🎬" accent continuing={inProgress.includes('hollywood')} onClick={() => onPlay('hollywood')}>
+          Los grandes éxitos de EE. UU., como en Spotle. Sube de dificultad con tu rango y{' '}
+          <b className="text-red-300">fallar resta XP</b>.
+          <span className="mt-3 flex gap-1" aria-label={`Nivel ${tier.level + 1} de ${HOLLYWOOD_TIERS.length}`}>
+            {HOLLYWOOD_TIERS.map((t) => (
+              <span key={t.level} className={`h-1.5 flex-1 rounded-full ${t.level <= tier.level ? 'bg-near' : 'bg-navy-700'}`} />
+            ))}
           </span>
-        </span>
-      </button>
+          <span className="mt-2 block text-xs">
+            Nivel <b className="text-white">{tier.rank}</b>: {tier.maxAttempts} intentos, desde {tier.fromYear}, fallar −{tier.lossPenalty} XP.
+            {nextTier && (
+              <>
+                {' '}
+                En <b className="text-white">{nextTier.rank}</b> ({RANKS[nextTier.level].minXp} XP): películas desde {nextTier.fromYear}
+                {nextTier.maxAttempts < tier.maxAttempts ? `, ${nextTier.maxAttempts} intentos` : ''}.
+              </>
+            )}
+          </span>
+        </ModeCard>
+
+        <ModeCard title="Pistas" emoji="🌍" accent={false} continuing={inProgress.includes('clues')} onClick={() => onPlay('clues')}>
+          Cine de todo el mundo y de cualquier época. 10 intentos, dificultad fija y perder no resta XP.
+        </ModeCard>
+      </div>
 
       <button
         onClick={onLibrary}

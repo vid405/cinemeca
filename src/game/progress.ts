@@ -1,3 +1,5 @@
+import type { GameModeId } from './modes';
+
 export const DISTRIBUTION_SLOTS = 10;
 
 /** Una partida terminada, tal como se muestra en la Filmoteca. */
@@ -12,6 +14,8 @@ export interface PlayedMovie {
   attempts: number;
   hintsUsed: number;
   xp: number;
+  /** Modo en que se jugó (las partidas antiguas no lo tienen: eran del modo Pistas). */
+  mode?: GameModeId;
   /** Fecha ISO de cuándo terminó la partida. */
   playedAt: string;
 }
@@ -59,7 +63,8 @@ export function applyRound(profile: Profile, round: RoundRecord): Profile {
   }
   return {
     ...profile,
-    xp: profile.xp + round.xp,
+    // El modo Hollywood puede restar XP, pero el total nunca baja de 0.
+    xp: Math.max(0, profile.xp + round.xp),
     gamesPlayed: profile.gamesPlayed + 1,
     wins: profile.wins + (round.won ? 1 : 0),
     currentStreak,

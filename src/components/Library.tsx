@@ -40,6 +40,11 @@ function PlayedCard({ movie, number, highlight, onOpen }: { movie: PlayedMovie; 
         <span className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 font-display text-sm text-white/80 backdrop-blur-sm">
           #{number}
         </span>
+        {movie.mode === 'hollywood' && (
+          <span className="absolute left-1.5 top-1.5 rounded bg-near/90 px-1 text-xs" title="Modo Hollywood" aria-label="Modo Hollywood">
+            🎬
+          </span>
+        )}
       </button>
       <span
         className={`label mt-2 rounded-full px-2.5 py-0.5 ${highlight && label === 'Hoy' ? 'bg-near text-navy-950' : 'text-navy-300'}`}
@@ -57,10 +62,14 @@ function PlayedDetail({ movie, onClose }: { movie: PlayedMovie; onClose: () => v
         <Poster path={movie.posterPath} title={movie.title} size="w342" className="aspect-[2/3] w-28 shrink-0 rounded-lg border border-navy-500/50" />
         <div className="min-w-0 space-y-1.5 text-sm">
           {movie.originalTitle !== movie.title && <p className="text-navy-300">{movie.originalTitle}</p>}
-          <p className="text-navy-300">{movie.year ?? 's/f'}</p>
+          <p className="text-navy-300">
+            {movie.year ?? 's/f'} · {movie.mode === 'hollywood' ? '🎬 Hollywood' : '🌍 Pistas'}
+          </p>
           <p className={`font-bold ${movie.won ? 'text-hit' : 'text-navy-200'}`}>{resultText(movie)}</p>
           <p className="text-navy-200">
-            +{movie.xp} XP
+            <span className={movie.xp < 0 ? 'text-red-300' : ''}>
+              {movie.xp < 0 ? `−${Math.abs(movie.xp)}` : `+${movie.xp}`} XP
+            </span>
             {movie.hintsUsed > 0 && ` · ${movie.hintsUsed} ${movie.hintsUsed === 1 ? 'pista' : 'pistas'}`}
           </p>
           <p className="text-navy-400">
